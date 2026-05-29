@@ -77,7 +77,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ctr-btn{width:32px;height:32px;border:1px solid var(--border);background:#fafbfc;font-size:18px;line-height:1;cursor:pointer;color:var(--text);transition:background .12s;font-weight:300}
 .ctr-btn:first-child{border-radius:8px 0 0 8px}.ctr-btn:last-child{border-radius:0 8px 8px 0}
 .ctr-btn:hover{background:var(--grey-light)}
-.ctr-val{min-width:42px;text-align:center;font-size:15px;font-weight:600;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px 4px;background:#fff;color:var(--green)}
+.ctr-val{min-width:52px;width:52px;text-align:center;font-size:15px;font-weight:600;border-top:1px solid var(--border);border-bottom:1px solid var(--border);border-left:none;border-right:none;padding:6px 4px;background:#fff;color:var(--green);border-radius:0;appearance:none;-webkit-appearance:none}
 
 /* ── CHECKLIST ── */
 .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -288,19 +288,24 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </select>
       </div>
     </div>
-    <div class="field"><label>Hub / Training Service Provider name <span class="req">*</span></label>
+    <div class="field"><label>Training Service Provider (TSP) / Hub name <span class="req">*</span></label>
       <select id="hubName">
-        <option value="">Select or type below…</option>
+        <option value="">Select TSP / Hub…</option>
         <option>Accra Youth Enterprise Hub</option><option>Kumasi Skills Hub</option>
         <option>Tamale Technical Centre</option><option>Takoradi Business Hub</option>
         <option>Cape Coast Digital Hub</option><option>Sunyani Youth Centre</option>
         <option>Koforidua Vocational Hub</option><option>Other — specify below</option>
       </select>
     </div>
-    <div class="field"><label>If "Other" — enter name</label><input type="text" id="hubOther" placeholder="Full name of hub/partner"/></div>
+    <div class="field"><label>If "Other" — TSP / Hub name</label><input type="text" id="hubOther" placeholder="Full name of TSP or hub"/></div>
     <div class="row2">
-      <div class="field"><label>Hub contact person met</label><input type="text" id="hubContact" placeholder="Name and role"/></div>
-      <div class="field"><label>Hub contact phone</label><input type="tel" id="hubContactPhone" placeholder="+233 XX XXX XXXX"/></div>
+      <div class="field"><label>Community <span class="req">*</span></label><input type="text" id="community" placeholder="e.g. Nima, Bantama, Tamale Central"/></div>
+      <div class="field"><label>Training centre name <span class="req">*</span></label><input type="text" id="trainingCentre" placeholder="e.g. Nima Community Centre, St. John's Hall"/></div>
+    </div>
+    <div class="field"><label>Training centre address / landmark</label><input type="text" id="centreAddress" placeholder="Street, area, or nearby landmark"/></div>
+    <div class="row2">
+      <div class="field"><label>Training centre contact person met</label><input type="text" id="hubContact" placeholder="Name and role"/></div>
+      <div class="field"><label>Contact phone</label><input type="tel" id="hubContactPhone" placeholder="+233 XX XXX XXXX"/></div>
     </div>
     <div class="row2">
       <div class="field"><label>Time arrived</label><input type="time" id="tArr"/></div>
@@ -661,7 +666,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 <script>
 // ── EMAILJS INIT ──
-// NOTE: Replace '-mgkmT9Ohq4Jkd2Y_' with your EmailJS public key after account setup
+// NOTE: Replace 'YOUR_PUBLIC_KEY' with your EmailJS public key after account setup
 emailjs.init("-mgkmT9Ohq4Jkd2Y_");
 
 // ── DATA ──
@@ -702,17 +707,17 @@ function buildUI(){
   const cw=document.getElementById('countersWrap');
   COUNTERS.forEach(c=>{
     cw.innerHTML+=`<div class="counter-row"><div class="counter-lbl">${c.label}</div>
-    <div class="ctr"><button class="ctr-btn" onclick="adj('${c.id}',-1)">−</button>
-    <div class="ctr-val" id="v_${c.id}">0</div>
-    <button class="ctr-btn" onclick="adj('${c.id}',1)">+</button></div></div>`;
+    <div class="ctr"><button class="ctr-btn" type="button" onclick="adj('${c.id}',-1)">−</button>
+    <input type="number" class="ctr-val" id="v_${c.id}" value="0" min="0" oninput="clampVal(this);updateProgress()"/>
+    <button class="ctr-btn" type="button" onclick="adj('${c.id}',1)">+</button></div></div>`;
   });
   // Activation counters
   const ac=document.getElementById('activationCounters');
   ACT_COUNTERS.forEach(c=>{
     ac.innerHTML+=`<div class="counter-row"><div class="counter-lbl">${c.label}</div>
-    <div class="ctr"><button class="ctr-btn" onclick="adj('${c.id}',-1)">−</button>
-    <div class="ctr-val" id="v_${c.id}">0</div>
-    <button class="ctr-btn" onclick="adj('${c.id}',1)">+</button></div></div>`;
+    <div class="ctr"><button class="ctr-btn" type="button" onclick="adj('${c.id}',-1)">−</button>
+    <input type="number" class="ctr-val" id="v_${c.id}" value="0" min="0" oninput="clampVal(this);updateProgress()"/>
+    <button class="ctr-btn" type="button" onclick="adj('${c.id}',1)">+</button></div></div>`;
   });
   // Quality
   const qg=document.getElementById('qualityGrid');
@@ -762,7 +767,8 @@ function buildUI(){
   });
 }
 
-function adj(id,d){const el=document.getElementById('v_'+id);const v=Math.max(0,(parseInt(el.textContent)||0)+d);el.textContent=v;updateProgress();}
+function clampVal(el){const v=parseInt(el.value);el.value=isNaN(v)||v<0?0:v;}
+function adj(id,d){const el=document.getElementById('v_'+id);const v=Math.max(0,(parseInt(el.value)||0)+d);el.value=v;updateProgress();}
 function toggleCheck(cb,lid){document.getElementById(lid).classList.toggle('on',cb.checked);}
 function toggleFlag(cb,lid){document.getElementById(lid).classList.toggle('flagged',cb.checked);}
 function toggleSafe(lid,cbid){
@@ -851,11 +857,12 @@ function collect(){
     fpName:v('fpName'),fpPhone:v('fpPhone'),fpEmail:v('fpEmail'),fpZone:v('fpZone'),
     visitDate:v('visitDate'),visitType:v('visitType'),
     hubName:v('hubName')==='Other — specify below'?v('hubOther'):v('hubName'),
+    community:v('community'),trainingCentre:v('trainingCentre'),centreAddress:v('centreAddress'),
     hubContact:v('hubContact'),hubContactPhone:v('hubContactPhone'),
     tArr:v('tArr'),tDep:v('tDep'),
-    counts:COUNTERS.reduce((o,c)=>{o[c.label]=parseInt(document.getElementById('v_'+c.id).textContent)||0;return o;},{}),
+    counts:COUNTERS.reduce((o,c)=>{o[c.label]=parseInt(document.getElementById('v_'+c.id).value)||0;return o;},{}),
     // Activation
-    activations:ACT_COUNTERS.reduce((o,c)=>{o[c.label]=parseInt(document.getElementById('v_'+c.id).textContent)||0;return o;},{}),
+    activations:ACT_COUNTERS.reduce((o,c)=>{o[c.label]=parseInt(document.getElementById('v_'+c.id).value)||0;return o;},{}),
     youthPlacedNames:v('youthPlacedNames'),employerName:v('employerName'),placementSector:v('placementSector'),
     enrolMale:v('enrolMale'),enrolFemale:v('enrolFemale'),enrolCourse:v('enrolCourse'),
     highlight:v('highlight'),yVoice:v('yVoice'),
@@ -914,9 +921,12 @@ Zone: ${d.fpZone}
 
 VISIT DETAILS
 Date: ${d.visitDate}
-Hub / Partner: ${d.hubName}
+TSP / Hub: ${d.hubName}
+Community: ${d.community||'—'}
+Training Centre: ${d.trainingCentre||'—'}
+Centre Address: ${d.centreAddress||'—'}
 Visit Type: ${d.visitType}
-Hub Contact: ${d.hubContact||'—'} | ${d.hubContactPhone||'—'}
+Centre Contact: ${d.hubContact||'—'} | ${d.hubContactPhone||'—'}
 Time: ${d.tArr||'—'} → ${d.tDep||'—'}
 
 ATTENDANCE
@@ -1002,14 +1012,13 @@ function deleteDB(id){return new Promise((res,rej)=>{const tx=db.transaction('re
 // ── SEND EMAIL (EmailJS) ──
 async function sendEmail(d){
   const body=buildEmailBody(d);
-  // Using EmailJS template variables
-  return emailjs.send(service_wfflww8,template_fx2s30a,{
+  return emailjs.send('service_wfflww8','template_fx2s30a',{
     to_email:'yiw@seghana.net',
     cc_email:'execdir@seghana.net',
     from_name:d.fpName,
     from_email:d.fpEmail||'noreply@seghana.net',
-    reply_to:'noreply@seghana.net',
-    subject:`YiW Field Report — ${d.fpName} | ${d.hubName} | ${d.visitDate}`,
+    reply_to:d.fpEmail||'noreply@seghana.net',
+    subject:`YiW Field Report \u2014 ${d.fpName} | ${d.hubName} | ${d.visitDate}`,
     report_body:body,
     hub_name:d.hubName,
     visit_date:d.visitDate,
