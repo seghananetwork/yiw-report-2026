@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="theme-color" content="#1a5c2a"/>
+<title>YiW Daily Field Report — SEG Ghana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+:root{
+  --green:#1a5c2a;--green-mid:#2d7a3a;--green-light:#e8f5eb;--green-bright:#4caf50;
+  --gold:#b8860b;--gold-light:#fff8e1;
+  --red:#c62828;--red-light:#ffebee;
+  --blue:#1565c0;--blue-light:#e3f2fd;
+  --orange:#e65100;--orange-light:#fff3e0;
+  --teal:#00695c;--teal-light:#e0f2f1;
+  --grey:#455a64;--grey-light:#eceff1;--grey-ultra:#f8fafb;
+  --text:#1a1a2e;--text2:#4a5568;--text3:#718096;
+  --border:#dde3ea;--radius:10px;--radius-lg:14px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:#f0f4f0;color:var(--text);min-height:100vh;padding-bottom:80px}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar-logo{font-family:'DM Serif Display',serif;font-size:18px;letter-spacing:.5px;flex:1}
+.topbar-logo span{opacity:.7;font-size:11px;font-family:'DM Sans',sans-serif;display:block;font-weight:400}
+.net-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:500}
+.net-dot{width:7px;height:7px;border-radius:50%}
+.net-dot.on{background:#69f0ae}.net-dot.off{background:#ff5252}
+
+/* ── NAV TABS ── */
+.tabs{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:60px;z-index:99}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:11px 14px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:5px}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.tab .tab-num{background:var(--grey-light);color:var(--text3);font-size:10px;padding:1px 5px;border-radius:10px;font-weight:600}
+.tab.active .tab-num{background:var(--green-light);color:var(--green)}
+
+/* ── PAGES ── */
+.page{display:none;padding:12px 14px;max-width:700px;margin:0 auto}
+.page.active{display:block}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.card-title{font-size:13px;font-weight:600;color:var(--text)}
+.card-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* ── FIELDS ── */
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
+label .req{color:var(--red)}
+input[type=text],input[type=date],input[type=time],input[type=email],input[type=number],input[type=tel],select,textarea{
+  width:100%;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);
+  background:#fafbfc;border:1px solid var(--border);border-radius:var(--radius);
+  padding:9px 11px;outline:none;transition:border .15s,box-shadow .15s;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--green-mid);box-shadow:0 0 0 3px rgba(45,122,58,.1);background:#fff}
+textarea{resize:vertical;min-height:75px;line-height:1.6}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%23718096'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ── COUNTER ── */
+.counter-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--grey-light)}
+.counter-row:last-child{border-bottom:none}
+.counter-lbl{flex:1;font-size:13px;color:var(--text)}
+.counter-lbl small{display:block;font-size:11px;color:var(--text3)}
+.ctr{display:flex;align-items:center;gap:0}
+.ctr-btn{width:32px;height:32px;border:1px solid var(--border);background:#fafbfc;font-size:18px;line-height:1;cursor:pointer;color:var(--text);transition:background .12s;font-weight:300}
+.ctr-btn:first-child{border-radius:8px 0 0 8px}.ctr-btn:last-child{border-radius:0 8px 8px 0}
+.ctr-btn:hover{background:var(--grey-light)}
+.ctr-val{min-width:42px;text-align:center;font-size:15px;font-weight:600;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px 4px;background:#fff;color:var(--green)}
+
+/* ── CHECKLIST ── */
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.check-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text2);cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:#fafbfc;transition:all .12s;-webkit-user-select:none;user-select:none}
+.check-item:hover{border-color:var(--green-mid)}
+.check-item.on{border-color:var(--green-mid);background:var(--green-light);color:var(--green);font-weight:500}
+.check-item input{display:none}
+.cbox{width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .12s;background:#fff}
+.check-item.on .cbox{background:var(--green);border-color:var(--green)}
+.check-item.on .cbox::after{content:'✓';color:#fff;font-size:10px;font-weight:700}
+
+/* ── FLAG ITEMS ── */
+.flag-item{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);background:#fafbfc;cursor:pointer;font-size:13px;color:var(--text2);margin-bottom:6px;transition:all .12s;-webkit-user-select:none;user-select:none}
+.flag-item:last-child{margin-bottom:0}
+.flag-item:hover{border-color:var(--red)}
+.flag-item.flagged{border-color:var(--red);background:var(--red-light);color:var(--red);font-weight:500}
+.flag-item input{display:none}
+.flag-box{width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .12s}
+.flag-item.flagged .flag-box{background:var(--red);border-color:var(--red)}
+.flag-item.flagged .flag-box::after{content:'!';color:#fff;font-size:10px;font-weight:700}
+
+/* ── RATING ── */
+.stars{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.star-btn{padding:7px 13px;border:1px solid var(--border);border-radius:var(--radius);background:#fafbfc;font-size:12px;font-weight:500;cursor:pointer;color:var(--text3);transition:all .12s}
+.star-btn:hover{border-color:var(--grey)}
+.star-btn.r1,.star-btn.r2{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.star-btn.r3{border-color:var(--gold);background:var(--gold-light);color:var(--gold)}
+.star-btn.r4,.star-btn.r5{border-color:var(--green-mid);background:var(--green-light);color:var(--green)}
+
+/* ── MEDIA UPLOAD ── */
+.media-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:18px;text-align:center;cursor:pointer;transition:all .15s;background:#fafbfc;position:relative}
+.media-zone:hover{border-color:var(--green-mid);background:var(--green-light)}
+.media-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.media-zone-icon{font-size:28px;margin-bottom:6px}
+.media-zone p{font-size:13px;color:var(--text3)}
+.media-zone strong{font-size:12px;color:var(--green)}
+.media-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.media-thumb{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--grey-light);flex-shrink:0}
+.media-thumb img,.media-thumb video{width:100%;height:100%;object-fit:cover}
+.media-thumb-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:18px;height:18px;font-size:11px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.media-thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);font-size:9px;color:#fff;text-align:center;padding:2px}
+.doc-file{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fafbfc;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px}
+.doc-file:last-child{margin-bottom:0}
+.doc-icon{font-size:20px;flex-shrink:0}
+.doc-info{flex:1;font-size:12px}
+.doc-info strong{display:block;color:var(--text);font-weight:500}
+.doc-info span{color:var(--text3)}
+.doc-del{background:none;border:none;font-size:16px;cursor:pointer;color:var(--text3);padding:2px;transition:color .12s}
+.doc-del:hover{color:var(--red)}
+
+/* ── PARTNER TABLE ── */
+.partner-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.partner-table th{background:var(--green-light);color:var(--green);font-weight:600;padding:8px 9px;text-align:left;font-size:11px;border-bottom:1px solid var(--border)}
+.partner-table td{padding:7px 9px;border-bottom:1px solid var(--grey-light);color:var(--text2);vertical-align:top}
+.partner-table tr:last-child td{border-bottom:none}
+.partner-table input,.partner-table select{background:transparent;border:none;border-bottom:1px dashed var(--border);border-radius:0;padding:2px 4px;font-size:12px;width:100%;color:var(--text)}
+.partner-table input:focus,.partner-table select:focus{border-bottom-color:var(--green-mid);outline:none;box-shadow:none;background:var(--green-light)}
+.btn-add-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-weight:500;cursor:pointer;background:none;border:none;padding:8px 4px;margin-top:6px;transition:opacity .12s}
+.btn-add-row:hover{opacity:.7}
+
+/* ── SAFEGUARDING ── */
+.safe-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:7px;background:#fafbfc;cursor:pointer;transition:all .12s;-webkit-user-select:none;user-select:none}
+.safe-item:last-child{margin-bottom:0}
+.safe-item.confirmed{background:var(--teal-light);border-color:var(--teal)}
+.safe-chk{width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .12s}
+.safe-item.confirmed .safe-chk{background:var(--teal);border-color:var(--teal)}
+.safe-item.confirmed .safe-chk::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
+.safe-txt strong{display:block;font-size:13px;color:var(--text);font-weight:500}
+.safe-txt span{font-size:11px;color:var(--text3)}
+.safe-item input{display:none}
+
+/* ── SUBMIT AREA ── */
+.submit-area{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--border);padding:16px;margin-bottom:12px}
+.submit-preview{background:var(--green-light);border-radius:var(--radius);padding:12px;margin-bottom:14px}
+.submit-preview h3{font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px}
+.preview-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(45,122,58,.1)}
+.preview-row:last-child{border-bottom:none}
+.preview-row span:first-child{color:var(--text3)}
+.preview-row span:last-child{font-weight:500;color:var(--green)}
+.email-note{background:var(--blue-light);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--blue);margin-bottom:14px;display:flex;align-items:flex-start;gap:8px}
+.btn-submit{width:100%;padding:13px;background:var(--green);border:none;border-radius:var(--radius-lg);font-size:15px;font-weight:600;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-submit:hover{background:var(--green-mid)}
+.btn-submit:disabled{background:var(--grey);cursor:not-allowed}
+.btn-draft{width:100%;padding:10px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);font-size:14px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-draft:hover{background:var(--grey-light)}
+
+/* ── SAVED LIST ── */
+.saved-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:7px;box-shadow:var(--shadow)}
+.saved-icon{width:36px;height:36px;border-radius:8px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.saved-info{flex:1}
+.saved-info strong{display:block;font-size:13px;color:var(--text);font-weight:500}
+.saved-info small{font-size:11px;color:var(--text3)}
+.status-pill{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0}
+.sp-pending{background:var(--gold-light);color:var(--gold)}
+.sp-sent{background:var(--green-light);color:var(--green)}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px;color:var(--text3);transition:all .12s;display:flex;align-items:center;justify-content:center}
+.btn-icon:hover{background:var(--grey-light)}
+
+/* ── PROGRESS ── */
+.progress-bar-wrap{height:4px;background:var(--grey-light);position:sticky;top:100px;z-index:98}
+.progress-bar{height:4px;background:var(--green-bright);transition:width .3s;width:0%}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a2e;color:#fff;padding:10px 18px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-events:none;transition:all .25s;z-index:999;display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-ok{border-left:3px solid #69f0ae}
+.toast-warn{border-left:3px solid #ffd740}
+.toast-err{border-left:3px solid #ff5252}
+
+/* ── SECTION LABELS ── */
+.section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--grey-light);display:flex;align-items:center;gap:6px}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;box-shadow:0 -2px 12px rgba(0,0,0,.07)}
+.bnav-item{flex:1;padding:8px 4px 6px;text-align:center;cursor:pointer;transition:all .12s;font-size:10px;font-weight:500;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:3px}
+.bnav-item.active{color:var(--green)}
+.bnav-item .bi{font-size:20px;line-height:1}
+.bnav-item.active .bi{color:var(--green)}
+
+/* ── MISC ── */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-orange{background:var(--orange-light);color:var(--orange)}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.info-box{background:var(--blue-light);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--blue);margin-bottom:12px;line-height:1.6}
+.warn-box{background:var(--orange-light);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--orange);margin-bottom:12px;line-height:1.6;display:flex;gap:8px}
+.required-note{font-size:11px;color:var(--text3);margin-bottom:14px}
+
+@media(max-width:480px){
+  .row2,.row3{grid-template-columns:1fr}
+  .check-grid{grid-template-columns:1fr}
+  .stars{gap:4px}
+  .star-btn{padding:6px 9px;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    YiW Field Report
+    <span>SEG Ghana — Youth in Work Programme</span>
+  </div>
+  <div class="net-pill">
+    <div class="net-dot" id="netDot"></div>
+    <span id="netLbl">…</span>
+  </div>
+</div>
+
+<div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+
+<div class="tabs" id="tabBar">
+  <div class="tab active" data-page="p1" onclick="goPage('p1',this)">📋 Visit Info</div>
+  <div class="tab" data-page="p2" onclick="goPage('p2',this)">🎓 Activation</div>
+  <div class="tab" data-page="p3" onclick="goPage('p3',this)">🏢 Hub Quality</div>
+  <div class="tab" data-page="p4" onclick="goPage('p4',this)">🤝 Partners</div>
+  <div class="tab" data-page="p5" onclick="goPage('p5',this)">📎 Documents</div>
+  <div class="tab" data-page="p6" onclick="goPage('p6',this)">📸 Media</div>
+  <div class="tab" data-page="p7" onclick="goPage('p7',this)">🛡 Safeguarding</div>
+  <div class="tab" data-page="p8" onclick="goPage('p8',this)">✉️ Submit</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 1 — VISIT INFO
+═══════════════════════════════════════════ -->
+<div class="page active" id="p1">
+  <div style="height:10px"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e8f5eb;color:#1a5c2a">👤</div>
+      <div><div class="card-title">Focal person details</div><div class="card-sub">Who is completing this report?</div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Full name <span class="req">*</span></label><input type="text" id="fpName" placeholder="e.g. Abena Mensah"/></div>
+      <div class="field"><label>Phone number <span class="req">*</span></label><input type="tel" id="fpPhone" placeholder="+233 XX XXX XXXX"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Email address</label><input type="email" id="fpEmail" placeholder="name@example.com"/></div>
+      <div class="field"><label>Zone / region <span class="req">*</span></label>
+        <select id="fpZone">
+          <option value="">Select zone…</option>
+          <option>Greater Accra</option><option>Ashanti</option><option>Northern</option>
+          <option>Western</option><option>Central</option><option>Eastern</option>
+          <option>Volta</option><option>Upper East</option><option>Upper West</option>
+          <option>Brong-Ahafo</option><option>Savannah</option><option>Bono East</option>
+          <option>Oti</option><option>Ahafo</option><option>North East</option><option>Western North</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e3f2fd;color:#1565c0">📍</div>
+      <div><div class="card-title">Visit details</div><div class="card-sub">Hub or partner visited today</div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Date of visit <span class="req">*</span></label><input type="date" id="visitDate"/></div>
+      <div class="field"><label>Visit type <span class="req">*</span></label>
+        <select id="visitType">
+          <option value="">Select…</option>
+          <option>Routine monitoring</option><option>Training supervision</option>
+          <option>Document collection</option><option>Partner engagement</option>
+          <option>Youth activation</option><option>Troubleshooting / support</option>
+          <option>Attendance data collection</option><option>MoU signing</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Hub / Training Service Provider name <span class="req">*</span></label>
+      <select id="hubName">
+        <option value="">Select or type below…</option>
+        <option>Accra Youth Enterprise Hub</option><option>Kumasi Skills Hub</option>
+        <option>Tamale Technical Centre</option><option>Takoradi Business Hub</option>
+        <option>Cape Coast Digital Hub</option><option>Sunyani Youth Centre</option>
+        <option>Koforidua Vocational Hub</option><option>Other — specify below</option>
+      </select>
+    </div>
+    <div class="field"><label>If "Other" — enter name</label><input type="text" id="hubOther" placeholder="Full name of hub/partner"/></div>
+    <div class="row2">
+      <div class="field"><label>Hub contact person met</label><input type="text" id="hubContact" placeholder="Name and role"/></div>
+      <div class="field"><label>Hub contact phone</label><input type="tel" id="hubContactPhone" placeholder="+233 XX XXX XXXX"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Time arrived</label><input type="time" id="tArr"/></div>
+      <div class="field"><label>Time departed</label><input type="time" id="tDep"/></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#fff8e1;color:#b8860b">👥</div>
+      <div><div class="card-title">Attendance count</div><div class="card-sub">Youth present during your visit</div></div>
+    </div>
+    <div id="countersWrap"></div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end">
+    <button onclick="goPage('p2',null,true)" style="background:var(--green);color:#fff;border:none;border-radius:var(--radius);padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">Next: Activation →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 2 — ACTIVATION & EMPLOYMENT
+═══════════════════════════════════════════ -->
+<div class="page" id="p2">
+  <div style="height:10px"></div>
+  <div class="info-box">📌 <strong>Role 1:</strong> Link ACTIVATE participants from training directly into employment — jobs, internships, and cooperatives.</div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e8f5eb;color:#1a5c2a">🚀</div>
+      <div><div class="card-title">Employment & placement outcomes</div><div class="card-sub">Youth activated today</div></div>
+    </div>
+    <div id="activationCounters"></div>
+    <div class="divider"></div>
+    <div class="field"><label>Names of youth placed into employment today (one per line)</label><textarea id="youthPlacedNames" placeholder="e.g.&#10;Kofi Asante — Secured internship at ADB Bank&#10;Akosua Boateng — Placed in cooperative farming group"></textarea></div>
+    <div class="field"><label>Employer / cooperative name(s)</label><input type="text" id="employerName" placeholder="Name of company, cooperative, or internship host"/></div>
+    <div class="field"><label>Sector of placement</label>
+      <select id="placementSector">
+        <option value="">Select sector…</option>
+        <option>Agriculture / Agribusiness</option><option>ICT / Digital</option>
+        <option>Manufacturing</option><option>Construction / Trade</option>
+        <option>Financial services</option><option>Health / Care</option>
+        <option>Education / Training</option><option>Hospitality / Tourism</option>
+        <option>Creative industries</option><option>Other</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e3f2fd;color:#1565c0">📚</div>
+      <div><div class="card-title">Training enrolment</div><div class="card-sub">New participants enrolled today</div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>New enrolments (male)</label><input type="number" id="enrolMale" min="0" value="0"/></div>
+      <div class="field"><label>New enrolments (female)</label><input type="number" id="enrolFemale" min="0" value="0"/></div>
+    </div>
+    <div class="field"><label>Training course / trade enrolled in</label><input type="text" id="enrolCourse" placeholder="e.g. Digital Marketing, Welding, Tailoring"/></div>
+    <div class="field"><label>Key success story / participant highlight</label><textarea id="highlight" placeholder="Describe a specific positive outcome or inspiring moment for a young person during today's visit…"></textarea></div>
+    <div class="field"><label>Youth voice / direct quote</label><textarea id="yVoice" placeholder="A direct quote or paraphrased feedback from a young participant…" style="min-height:60px"></textarea></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 3 — HUB QUALITY & COMPLIANCE
+═══════════════════════════════════════════ -->
+<div class="page" id="p3">
+  <div style="height:10px"></div>
+  <div class="info-box">📌 <strong>Role 2:</strong> Oversee Training Service Providers (hubs), ensuring quality delivery and compliance.</div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e8f5eb;color:#1a5c2a">⭐</div>
+      <div><div class="card-title">Hub quality assessment</div><div class="card-sub">Overall performance today</div></div>
+    </div>
+    <div class="field"><label>Overall hub rating</label>
+      <div class="stars" id="ratingStars"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">✅ Quality indicators observed</div>
+    <div class="check-grid" id="qualityGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#ffebee;color:#c62828">⚠️</div>
+      <div><div class="card-title">Compliance issues flagged</div><div class="card-sub">Select all that apply</div></div>
+    </div>
+    <div id="issuesList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#fff3e0;color:#e65100">🏗</div>
+      <div><div class="card-title">Facilities & resources</div><div class="card-sub">Available at hub today</div></div>
+    </div>
+    <div class="check-grid" id="facilitiesGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e0f2f1;color:#00695c">📝</div>
+      <div><div class="card-title">Assessment narrative</div></div>
+    </div>
+    <div class="field"><label>Activities / training observed during visit</label>
+      <div class="check-grid" id="activitiesGrid"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label>Challenges at hub (describe)</label><textarea id="challenges" placeholder="Barriers, problems, or concerns noted…"></textarea></div>
+    <div class="field"><label>Recommendations / support needed</label><textarea id="recommendations" placeholder="What action is needed from the programme team?"></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Urgency of action</label>
+        <select id="urgency">
+          <option value="">Select…</option>
+          <option>No action needed</option><option>Within the week</option>
+          <option>Within 48 hours</option><option>Urgent — same day</option>
+        </select>
+      </div>
+      <div class="field"><label>Follow-up by whom</label><input type="text" id="followUpBy" placeholder="Name / team responsible"/></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 4 — PARTNER ENGAGEMENT
+═══════════════════════════════════════════ -->
+<div class="page" id="p4">
+  <div style="height:10px"></div>
+  <div class="info-box">📌 <strong>Role 4:</strong> Engage and verify at least 15 partner companies per zone before contracts are confirmed.</div>
+  <div class="warn-box">⚡ <span><strong>Target:</strong> 15 verified partners per zone. Track your progress here for each visit — even if you only engaged 1–2 companies today.</span></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e8f5eb;color:#1a5c2a">🤝</div>
+      <div><div class="card-title">Partner companies engaged today</div><div class="card-sub">Add each company visited or contacted</div></div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="partner-table" id="partnerTable">
+        <thead>
+          <tr>
+            <th style="min-width:130px">Company name</th>
+            <th style="min-width:90px">Sector</th>
+            <th style="min-width:90px">Contact name</th>
+            <th style="min-width:100px">Phone</th>
+            <th style="min-width:90px">Status</th>
+            <th style="min-width:80px">Youth slots</th>
+            <th style="width:30px"></th>
+          </tr>
+        </thead>
+        <tbody id="partnerBody"></tbody>
+      </table>
+    </div>
+    <button class="btn-add-row" onclick="addPartnerRow()">➕ Add company</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text3)">Partners engaged today:</span>
+      <span id="partnerCount" style="font-size:18px;font-weight:700;color:var(--green)">0</span>
+      <span style="font-size:12px;color:var(--text3)">/ 15 zone target</span>
+      <div style="flex:1;height:6px;background:var(--grey-light);border-radius:3px;overflow:hidden"><div id="partnerBar" style="height:100%;background:var(--green-bright);border-radius:3px;width:0%;transition:width .3s"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field"><label>Partner engagement notes / context</label><textarea id="partnerNotes" placeholder="Any additional context about the companies visited — barriers to signing, promising leads, upcoming meetings…"></textarea></div>
+    <div class="field"><label>Next partner engagement date</label><input type="date" id="nextPartnerDate"/></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 5 — DOCUMENTS
+═══════════════════════════════════════════ -->
+<div class="page" id="p5">
+  <div style="height:10px"></div>
+  <div class="info-box">📌 <strong>Role 3 & 5:</strong> Scan and send documents — attendance sheets, financial documents, MoUs. Upload monthly tracking sheets.</div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e3f2fd;color:#1565c0">📄</div>
+      <div><div class="card-title">Document upload</div><div class="card-sub">Attach scans, photos of documents, or files</div></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="section-label">📋 Attendance sheets</div>
+      <div class="media-zone" onclick="triggerFile('attFile')">
+        <input type="file" id="attFile" accept="image/*,.pdf" multiple onchange="handleDocs(this,'attDocs','attList')"/>
+        <div class="media-zone-icon">📋</div>
+        <p>Tap to attach attendance sheets</p>
+        <strong>Photos or PDF — multiple files OK</strong>
+      </div>
+      <div id="attList"></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="section-label">💰 Financial documents</div>
+      <div class="media-zone" onclick="triggerFile('finFile')">
+        <input type="file" id="finFile" accept="image/*,.pdf" multiple onchange="handleDocs(this,'finDocs','finList')"/>
+        <div class="media-zone-icon">💰</div>
+        <p>Tap to attach financial documents</p>
+        <strong>Receipts, invoices, payment confirmations</strong>
+      </div>
+      <div id="finList"></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="section-label">📝 MoUs & agreements</div>
+      <div class="media-zone" onclick="triggerFile('mouFile')">
+        <input type="file" id="mouFile" accept="image/*,.pdf" multiple onchange="handleDocs(this,'mouDocs','mouList')"/>
+        <div class="media-zone-icon">📝</div>
+        <p>Tap to attach MoUs or signed agreements</p>
+        <strong>Scanned or photographed copies</strong>
+      </div>
+      <div id="mouList"></div>
+    </div>
+
+    <div>
+      <div class="section-label">📊 YiW tracking sheets (monthly)</div>
+      <div class="media-zone" onclick="triggerFile('trackFile')">
+        <input type="file" id="trackFile" accept="image/*,.pdf,.xlsx,.csv,.xls" multiple onchange="handleDocs(this,'trackDocs','trackList')"/>
+        <div class="media-zone-icon">📊</div>
+        <p>Tap to attach tracking / monitoring sheets</p>
+        <strong>Excel, CSV, PDF or photo</strong>
+      </div>
+      <div id="trackList"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field"><label>Document notes</label><textarea id="docNotes" placeholder="Any notes about the documents attached — what they cover, date range, which hub they relate to…" style="min-height:60px"></textarea></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 6 — MEDIA (PHOTOS & VIDEOS)
+═══════════════════════════════════════════ -->
+<div class="page" id="p6">
+  <div style="height:10px"></div>
+  <div class="info-box">📌 <strong>Visual evidence:</strong> Capture photos and videos of training in progress, hub conditions, youth activities, and partner meetings.</div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e8f5eb;color:#1a5c2a">📸</div>
+      <div><div class="card-title">Photos</div><div class="card-sub">Training, youth activities, hub conditions, partner meetings</div></div>
+    </div>
+    <div class="media-zone" onclick="triggerFile('photoInput')">
+      <input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handleMedia(this,'photos','photoPreview')"/>
+      <div class="media-zone-icon">📷</div>
+      <p>Tap to take photos or choose from gallery</p>
+      <strong>Multiple photos OK</strong>
+    </div>
+    <div class="media-preview" id="photoPreview"></div>
+    <div class="field" style="margin-top:12px"><label>Photo caption / context</label><input type="text" id="photoCaption" placeholder="Brief description of what the photos show…"/></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e3f2fd;color:#1565c0">🎥</div>
+      <div><div class="card-title">Videos</div><div class="card-sub">Short clips of training delivery, testimonials, activities</div></div>
+    </div>
+    <div class="media-zone" onclick="triggerFile('videoInput')">
+      <input type="file" id="videoInput" accept="video/*" multiple capture="environment" onchange="handleMedia(this,'videos','videoPreview')"/>
+      <div class="media-zone-icon">🎬</div>
+      <p>Tap to record video or choose from gallery</p>
+      <strong>Keep clips under 2 minutes where possible</strong>
+    </div>
+    <div class="media-preview" id="videoPreview"></div>
+    <div class="field" style="margin-top:12px"><label>Video description</label><input type="text" id="videoCaption" placeholder="Brief description of video content…"/></div>
+  </div>
+
+  <div class="card">
+    <div class="field"><label>Media context / overall description</label><textarea id="mediaContext" placeholder="Describe what the photos and videos document — which activities, which participants, what the conditions show…" style="min-height:60px"></textarea></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 7 — SAFEGUARDING
+═══════════════════════════════════════════ -->
+<div class="page" id="p7">
+  <div style="height:10px"></div>
+  <div class="warn-box">🛡 <span><strong>Role 7:</strong> Uphold safeguarding standards at all times when working with young participants. All items below must be confirmed before submission.</span></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#e0f2f1;color:#00695c">🛡</div>
+      <div><div class="card-title">Safeguarding checklist</div><div class="card-sub">Confirm each item was upheld during today's visit</div></div>
+    </div>
+    <div id="safeguardList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon" style="background:#ffebee;color:#c62828">🚨</div>
+      <div><div class="card-title">Concern reporting</div><div class="card-sub">Complete only if a concern was identified</div></div>
+    </div>
+    <div class="field">
+      <label>Was a safeguarding concern identified today?</label>
+      <select id="safeConcern">
+        <option value="no">No — no concerns identified</option>
+        <option value="yes">Yes — concern identified (describe below)</option>
+      </select>
+    </div>
+    <div id="safeConcernDetail" style="display:none">
+      <div class="field"><label>Describe the concern <span class="req">*</span></label><textarea id="safeConcernText" placeholder="Describe what you observed or were told. Do NOT include full names of young people in this field — use initials only."></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Action taken</label><input type="text" id="safeAction" placeholder="Steps you took immediately"/></div>
+        <div class="field"><label>Reported to</label><input type="text" id="safeReported" placeholder="Supervisor / safeguarding lead name"/></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field"><label>Safeguarding notes / observations</label><textarea id="safeNotes" placeholder="Any other safeguarding-related observations, good practices seen, or areas to improve…" style="min-height:60px"></textarea></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 8 — REVIEW & SUBMIT
+═══════════════════════════════════════════ -->
+<div class="page" id="p8">
+  <div style="height:10px"></div>
+
+  <div class="submit-area">
+    <div class="submit-preview">
+      <h3>📋 Report summary</h3>
+      <div id="summaryRows"></div>
+    </div>
+
+    <div class="email-note">
+      📧 <div>This report will be emailed to <strong>yiw@seghana.net</strong> with a copy to <strong>execdir@seghana.net</strong>. All attached documents and media names will be included in the email body. Please submit even when offline — it will send automatically when you reconnect.</div>
+    </div>
+
+    <div class="field"><label>Any final notes before submission</label><textarea id="finalNotes" placeholder="Anything else the programme team should know…" style="min-height:60px"></textarea></div>
+
+    <button class="btn-draft" onclick="saveDraft()">💾 Save draft (offline)</button>
+    <button class="btn-submit" id="submitBtn" onclick="submitReport()">
+      <span>✉️ Submit report</span>
+    </button>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">Saved locally + emailed to the YiW team</div>
+  </div>
+
+  <div>
+    <div class="section-label" style="margin-top:6px">📂 Previous reports</div>
+    <div id="savedList"><p style="font-size:13px;color:var(--text3);padding:8px 0">No saved reports yet.</p></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="bnav-item active" onclick="goPage('p1',null)" id="bn1"><div class="bi">📋</div>Visit</div>
+  <div class="bnav-item" onclick="goPage('p2',null)" id="bn2"><div class="bi">🎓</div>Activate</div>
+  <div class="bnav-item" onclick="goPage('p3',null)" id="bn3"><div class="bi">🏢</div>Hub</div>
+  <div class="bnav-item" onclick="goPage('p4',null)" id="bn4"><div class="bi">🤝</div>Partners</div>
+  <div class="bnav-item" onclick="goPage('p5',null)" id="bn5"><div class="bi">📎</div>Docs</div>
+  <div class="bnav-item" onclick="goPage('p6',null)" id="bn6"><div class="bi">📸</div>Media</div>
+  <div class="bnav-item" onclick="goPage('p7',null)" id="bn7"><div class="bi">🛡</div>Safe</div>
+  <div class="bnav-item" onclick="goPage('p8',null)" id="bn8"><div class="bi">✉️</div>Submit</div>
+</div>
+
+<script>
+// ── EMAILJS INIT ──
+// NOTE: Replace '-mgkmT9Ohq4Jkd2Y_' with your EmailJS public key after account setup
+emailjs.init("-mgkmT9Ohq4Jkd2Y_");
+
+// ── DATA ──
+const COUNTERS=[
+  {id:'cMale',label:'Young men present'},
+  {id:'cFemale',label:'Young women present'},
+  {id:'cPWD',label:'Persons with disability'},
+  {id:'cStaff',label:'Hub staff on duty'},
+  {id:'cTrainers',label:'Trainers / facilitators present'}
+];
+const ACT_COUNTERS=[
+  {id:'aJobs',label:'Placed in formal employment'},
+  {id:'aIntern',label:'Placed in internships'},
+  {id:'aCoop',label:'Joined cooperatives / self-employment'},
+  {id:'aRef',label:'Referred for further training'}
+];
+const QUALITY_ITEMS=['Training ongoing as scheduled','Trainers present and prepared','Participants engaged/attentive','Course content displayed/visible','Training materials available','IDs / registration checked','Attendance sheet in use','Hub clean and safe'];
+const ISSUES_LIST=['No trainer present','Training not following curriculum','Attendance not being recorded','Low youth attendance (<50%)','Equipment failure / unavailable','Safety hazard identified','Participant misconduct','Financial irregularity noted','Hub premises unsafe','Staff demanding payment from youth'];
+const FACILITIES=['Internet / Wi-Fi','Computers / tablets','Projector / display','Power / electricity','Clean water','Sanitation / toilets','Training room available','Notice board updated','First aid kit','Fire safety equipment'];
+const ACTIVITIES=['Technical skills training','Entrepreneurship session','CV & job readiness','Mentorship / coaching','Employer talk / industry visit','Group work / project','Assessment / exam','Sports / wellness activity'];
+const SAFEGUARDING=[
+  {id:'sg1',label:'Consent obtained before photos/videos',sub:'Youth gave verbal or written consent'},
+  {id:'sg2',label:'No youth left alone with staff unsupervised',sub:'Two-adult rule maintained'},
+  {id:'sg3',label:'Safeguarding policy visible at hub',sub:'Displayed on notice board or in training space'},
+  {id:'sg4',label:'No discriminatory language or behaviour observed',sub:'Inclusive environment maintained'},
+  {id:'sg5',label:'Reporting mechanism communicated to youth',sub:'Youth know how to raise concerns'},
+  {id:'sg6',label:'Your YiW ID/badge was worn during visit',sub:'Identification clearly displayed'},
+  {id:'sg7',label:'No exchange of personal contact details with youth',sub:'Professional boundaries maintained'},
+  {id:'sg8',label:'Any gifts or incentives followed programme guidelines',sub:'No unauthorised payments or gifts'}
+];
+
+let ratingVal=0;
+const mediaSets={photos:[],videos:[],attDocs:[],finDocs:[],mouDocs:[],trackDocs:[]};
+
+// ── BUILD UI ──
+function buildUI(){
+  // Visit page counters
+  const cw=document.getElementById('countersWrap');
+  COUNTERS.forEach(c=>{
+    cw.innerHTML+=`<div class="counter-row"><div class="counter-lbl">${c.label}</div>
+    <div class="ctr"><button class="ctr-btn" onclick="adj('${c.id}',-1)">−</button>
+    <div class="ctr-val" id="v_${c.id}">0</div>
+    <button class="ctr-btn" onclick="adj('${c.id}',1)">+</button></div></div>`;
+  });
+  // Activation counters
+  const ac=document.getElementById('activationCounters');
+  ACT_COUNTERS.forEach(c=>{
+    ac.innerHTML+=`<div class="counter-row"><div class="counter-lbl">${c.label}</div>
+    <div class="ctr"><button class="ctr-btn" onclick="adj('${c.id}',-1)">−</button>
+    <div class="ctr-val" id="v_${c.id}">0</div>
+    <button class="ctr-btn" onclick="adj('${c.id}',1)">+</button></div></div>`;
+  });
+  // Quality
+  const qg=document.getElementById('qualityGrid');
+  QUALITY_ITEMS.forEach(item=>{
+    const id='q_'+item.replace(/\W/g,'');
+    qg.innerHTML+=`<label class="check-item" id="l${id}"><input type="checkbox" id="${id}" onchange="toggleCheck(this,'l${id}')"><div class="cbox"></div>${item}</label>`;
+  });
+  // Issues
+  const il=document.getElementById('issuesList');
+  ISSUES_LIST.forEach(item=>{
+    const id='i_'+item.replace(/\W/g,'');
+    il.innerHTML+=`<label class="flag-item" id="l${id}"><input type="checkbox" id="${id}" onchange="toggleFlag(this,'l${id}')"><div class="flag-box"></div>${item}</label>`;
+  });
+  // Facilities
+  const fg=document.getElementById('facilitiesGrid');
+  FACILITIES.forEach(item=>{
+    const id='f_'+item.replace(/\W/g,'');
+    fg.innerHTML+=`<label class="check-item" id="l${id}"><input type="checkbox" id="${id}" onchange="toggleCheck(this,'l${id}')"><div class="cbox"></div>${item}</label>`;
+  });
+  // Activities
+  const ag=document.getElementById('activitiesGrid');
+  ACTIVITIES.forEach(item=>{
+    const id='a_'+item.replace(/\W/g,'');
+    ag.innerHTML+=`<label class="check-item" id="l${id}"><input type="checkbox" id="${id}" onchange="toggleCheck(this,'l${id}')"><div class="cbox"></div>${item}</label>`;
+  });
+  // Ratings
+  const rr=document.getElementById('ratingStars');
+  ['1 — Poor','2 — Weak','3 — Fair','4 — Good','5 — Excellent'].forEach((l,i)=>{
+    rr.innerHTML+=`<button class="star-btn" data-v="${i+1}" onclick="setRating(${i+1},this)">${l}</button>`;
+  });
+  // Safeguarding
+  const sl=document.getElementById('safeguardList');
+  SAFEGUARDING.forEach(s=>{
+    sl.innerHTML+=`<label class="safe-item" id="ls${s.id}" onclick="toggleSafe('ls${s.id}','${s.id}')">
+      <div class="safe-chk" id="sc${s.id}"></div>
+      <div class="safe-txt"><strong>${s.label}</strong><span>${s.sub}</span></div>
+      <input type="checkbox" id="${s.id}" style="display:none"/>
+    </label>`;
+  });
+  // Partner table initial rows
+  for(let i=0;i<3;i++) addPartnerRow();
+  // Set today's date
+  document.getElementById('visitDate').value=new Date().toISOString().split('T')[0];
+  // Safeguarding toggle
+  document.getElementById('safeConcern').addEventListener('change',function(){
+    document.getElementById('safeConcernDetail').style.display=this.value==='yes'?'block':'none';
+  });
+}
+
+function adj(id,d){const el=document.getElementById('v_'+id);const v=Math.max(0,(parseInt(el.textContent)||0)+d);el.textContent=v;updateProgress();}
+function toggleCheck(cb,lid){document.getElementById(lid).classList.toggle('on',cb.checked);}
+function toggleFlag(cb,lid){document.getElementById(lid).classList.toggle('flagged',cb.checked);}
+function toggleSafe(lid,cbid){
+  const el=document.getElementById(lid);const cb=document.getElementById(cbid);
+  cb.checked=!cb.checked;el.classList.toggle('confirmed',cb.checked);
+}
+function setRating(v,btn){ratingVal=v;document.querySelectorAll('.star-btn').forEach(b=>{b.className='star-btn';if(parseInt(b.dataset.v)===v)b.classList.add('r'+v);});}
+
+// ── PARTNER TABLE ──
+function addPartnerRow(){
+  const tb=document.getElementById('partnerBody');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="text" placeholder="Company name"/></td>
+    <td><select style="font-size:12px"><option value="">Sector…</option><option>Agriculture</option><option>ICT</option><option>Manufacturing</option><option>Construction</option><option>Finance</option><option>Health</option><option>Education</option><option>Hospitality</option><option>Other</option></select></td>
+    <td><input type="text" placeholder="Contact name"/></td>
+    <td><input type="tel" placeholder="+233…"/></td>
+    <td><select style="font-size:12px"><option value="">Status…</option><option>Initial contact</option><option>Meeting held</option><option>Verified</option><option>Contract ready</option><option>Signed</option></select></td>
+    <td><input type="number" min="0" value="0" style="width:60px"/></td>
+    <td><button onclick="this.closest('tr').remove();updatePartnerCount()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#c62828;padding:0">✕</button></td>`;
+  tr.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',updatePartnerCount));
+  tb.appendChild(tr);
+  updatePartnerCount();
+}
+function updatePartnerCount(){
+  const rows=document.querySelectorAll('#partnerBody tr');
+  let count=0;
+  rows.forEach(r=>{const v=r.cells[0].querySelector('input').value.trim();if(v)count++;});
+  document.getElementById('partnerCount').textContent=count;
+  const pct=Math.min(100,Math.round(count/15*100));
+  document.getElementById('partnerBar').style.width=pct+'%';
+}
+
+// ── MEDIA HANDLING ──
+function triggerFile(id){document.getElementById(id).click();}
+function handleMedia(input,setKey,previewId){
+  const files=Array.from(input.files);
+  files.forEach(f=>{
+    mediaSets[setKey].push(f);
+    const url=URL.createObjectURL(f);
+    const thumb=document.createElement('div');thumb.className='media-thumb';
+    if(f.type.startsWith('image')){
+      thumb.innerHTML=`<img src="${url}" alt=""/><div class="media-thumb-label">${f.name.substring(0,12)}</div>`;
+    } else {
+      thumb.innerHTML=`<video src="${url}" muted playsinline></video><div class="media-thumb-label">▶ ${f.name.substring(0,10)}</div>`;
+    }
+    const del=document.createElement('button');del.className='media-thumb-del';del.textContent='✕';
+    del.onclick=()=>{mediaSets[setKey]=mediaSets[setKey].filter(x=>x!==f);thumb.remove();};
+    thumb.appendChild(del);
+    document.getElementById(previewId).appendChild(thumb);
+  });
+  input.value='';
+  updateProgress();
+}
+function handleDocs(input,setKey,listId){
+  const files=Array.from(input.files);
+  files.forEach(f=>{
+    mediaSets[setKey].push(f);
+    const el=document.createElement('div');el.className='doc-file';
+    const icons={'application/pdf':'📄','image/jpeg':'🖼','image/png':'🖼'};
+    el.innerHTML=`<div class="doc-icon">${icons[f.type]||'📎'}</div>
+      <div class="doc-info"><strong>${f.name}</strong><span>${(f.size/1024).toFixed(0)} KB</span></div>
+      <button class="doc-del" onclick="mediaSets['${setKey}']=mediaSets['${setKey}'].filter(x=>x.name!=='${f.name}');this.closest('.doc-file').remove()">✕</button>`;
+    document.getElementById(listId).appendChild(el);
+  });
+  input.value='';
+  updateProgress();
+}
+
+// ── COLLECT DATA ──
+function collect(){
+  const partners=[];
+  document.querySelectorAll('#partnerBody tr').forEach(r=>{
+    const cells=r.cells;
+    const name=cells[0].querySelector('input').value.trim();
+    if(name) partners.push({
+      name,sector:cells[1].querySelector('select').value,
+      contact:cells[2].querySelector('input').value,
+      phone:cells[3].querySelector('input').value,
+      status:cells[4].querySelector('select').value,
+      slots:cells[5].querySelector('input').value
+    });
+  });
+  return {
+    id:Date.now(),ts:new Date().toISOString(),status:'pending',
+    // Visit
+    fpName:v('fpName'),fpPhone:v('fpPhone'),fpEmail:v('fpEmail'),fpZone:v('fpZone'),
+    visitDate:v('visitDate'),visitType:v('visitType'),
+    hubName:v('hubName')==='Other — specify below'?v('hubOther'):v('hubName'),
+    hubContact:v('hubContact'),hubContactPhone:v('hubContactPhone'),
+    tArr:v('tArr'),tDep:v('tDep'),
+    counts:COUNTERS.reduce((o,c)=>{o[c.label]=parseInt(document.getElementById('v_'+c.id).textContent)||0;return o;},{}),
+    // Activation
+    activations:ACT_COUNTERS.reduce((o,c)=>{o[c.label]=parseInt(document.getElementById('v_'+c.id).textContent)||0;return o;},{}),
+    youthPlacedNames:v('youthPlacedNames'),employerName:v('employerName'),placementSector:v('placementSector'),
+    enrolMale:v('enrolMale'),enrolFemale:v('enrolFemale'),enrolCourse:v('enrolCourse'),
+    highlight:v('highlight'),yVoice:v('yVoice'),
+    // Hub
+    rating:ratingVal,
+    quality:QUALITY_ITEMS.filter(i=>document.getElementById('q_'+i.replace(/\W/g,'')).checked),
+    issues:ISSUES_LIST.filter(i=>document.getElementById('i_'+i.replace(/\W/g,'')).checked),
+    facilities:FACILITIES.filter(f=>document.getElementById('f_'+f.replace(/\W/g,'')).checked),
+    activities:ACTIVITIES.filter(a=>document.getElementById('a_'+a.replace(/\W/g,'')).checked),
+    challenges:v('challenges'),recommendations:v('recommendations'),urgency:v('urgency'),followUpBy:v('followUpBy'),
+    // Partners
+    partners,partnerNotes:v('partnerNotes'),nextPartnerDate:v('nextPartnerDate'),
+    // Documents
+    docNotes:v('docNotes'),
+    docCounts:{attDocs:mediaSets.attDocs.length,finDocs:mediaSets.finDocs.length,mouDocs:mediaSets.mouDocs.length,trackDocs:mediaSets.trackDocs.length},
+    // Media
+    photoCaption:v('photoCaption'),videoCaption:v('videoCaption'),mediaContext:v('mediaContext'),
+    mediaCounts:{photos:mediaSets.photos.length,videos:mediaSets.videos.length},
+    // Safeguarding
+    safeguardChecked:SAFEGUARDING.filter(s=>document.getElementById(s.id).checked).map(s=>s.label),
+    safeConcern:v('safeConcern'),safeConcernText:v('safeConcernText'),safeAction:v('safeAction'),safeReported:v('safeReported'),safeNotes:v('safeNotes'),
+    // Final
+    finalNotes:v('finalNotes')
+  };
+}
+function v(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+
+// ── VALIDATE ──
+function validate(d){
+  if(!d.fpName) return[false,'Please enter the focal person name (Page 1)'];
+  if(!d.fpPhone) return[false,'Please enter the focal person phone number (Page 1)'];
+  if(!d.fpZone) return[false,'Please select your zone (Page 1)'];
+  if(!d.visitDate) return[false,'Please enter the visit date (Page 1)'];
+  if(!d.visitType) return[false,'Please select the visit type (Page 1)'];
+  if(!d.hubName) return[false,'Please select the hub visited (Page 1)'];
+  const safeDone=d.safeguardChecked.length;
+  if(safeDone<6) return[false,`Please complete the safeguarding checklist — ${8-safeDone} items remaining (Page 7)`];
+  return[true,''];
+}
+
+// ── EMAIL BODY ──
+function buildEmailBody(d){
+  const pList=d.partners.map(p=>`  • ${p.name} | ${p.sector} | ${p.status} | Contact: ${p.contact} (${p.phone}) | Slots: ${p.slots}`).join('\n');
+  const docSummary=`Attendance sheets: ${d.docCounts.attDocs} file(s) | Financial docs: ${d.docCounts.finDocs} file(s) | MoUs: ${d.docCounts.mouDocs} file(s) | Tracking sheets: ${d.docCounts.trackDocs} file(s)`;
+  const mediaSummary=`Photos: ${d.mediaCounts.photos} | Videos: ${d.mediaCounts.videos}`;
+  return `
+YOUTH IN WORK PROGRAMME — DAILY FIELD REPORT
+SEG Ghana | Submitted: ${new Date(d.ts).toLocaleString('en-GB')}
+═══════════════════════════════════════════════
+
+FOCAL PERSON
+Name: ${d.fpName}
+Phone: ${d.fpPhone}
+Email: ${d.fpEmail||'—'}
+Zone: ${d.fpZone}
+
+VISIT DETAILS
+Date: ${d.visitDate}
+Hub / Partner: ${d.hubName}
+Visit Type: ${d.visitType}
+Hub Contact: ${d.hubContact||'—'} | ${d.hubContactPhone||'—'}
+Time: ${d.tArr||'—'} → ${d.tDep||'—'}
+
+ATTENDANCE
+${Object.entries(d.counts).map(([k,v])=>`  ${k}: ${v}`).join('\n')}
+
+─────────────────────────────────────────────
+ACTIVATION & EMPLOYMENT OUTCOMES
+─────────────────────────────────────────────
+${Object.entries(d.activations).map(([k,v])=>`  ${k}: ${v}`).join('\n')}
+New enrolments (M/F): ${d.enrolMale} / ${d.enrolFemale} — Course: ${d.enrolCourse||'—'}
+Employer / placement: ${d.employerName||'—'} | Sector: ${d.placementSector||'—'}
+Youth placed (names):
+${d.youthPlacedNames||'None recorded'}
+Success story: ${d.highlight||'—'}
+Youth voice: ${d.yVoice||'—'}
+
+─────────────────────────────────────────────
+HUB QUALITY & COMPLIANCE
+─────────────────────────────────────────────
+Overall rating: ${d.rating?d.rating+'/5':'Not rated'}
+Quality indicators ✓: ${d.quality.join(', ')||'None selected'}
+Issues flagged ⚠: ${d.issues.join(', ')||'None'}
+Activities observed: ${d.activities.join(', ')||'None selected'}
+Facilities available: ${d.facilities.join(', ')||'None selected'}
+Challenges: ${d.challenges||'—'}
+Recommendations: ${d.recommendations||'—'}
+Urgency: ${d.urgency||'—'}
+Follow-up by: ${d.followUpBy||'—'}
+
+─────────────────────────────────────────────
+PARTNER ENGAGEMENT
+─────────────────────────────────────────────
+Partners engaged today: ${d.partners.length}
+${pList||'  None recorded'}
+Notes: ${d.partnerNotes||'—'}
+Next partner date: ${d.nextPartnerDate||'—'}
+
+─────────────────────────────────────────────
+DOCUMENTS ATTACHED
+─────────────────────────────────────────────
+${docSummary}
+Notes: ${d.docNotes||'—'}
+
+MEDIA
+${mediaSummary}
+Photo caption: ${d.photoCaption||'—'}
+Video description: ${d.videoCaption||'—'}
+Media context: ${d.mediaContext||'—'}
+
+─────────────────────────────────────────────
+SAFEGUARDING
+─────────────────────────────────────────────
+Confirmed: ${d.safeguardChecked.join(' | ')||'—'}
+Concern raised: ${d.safeConcern==='yes'?'YES':'No'}
+${d.safeConcern==='yes'?`Details: ${d.safeConcernText}\nAction taken: ${d.safeAction}\nReported to: ${d.safeReported}`:''}
+Safeguarding notes: ${d.safeNotes||'—'}
+
+─────────────────────────────────────────────
+ADDITIONAL NOTES
+─────────────────────────────────────────────
+${d.finalNotes||'—'}
+
+═══════════════════════════════════════════════
+This report was submitted via the YiW Field Report system.
+Documents and media are saved on the focal person's device.
+If files were attached, they will be sent separately.
+`.trim();
+}
+
+// ── INDEXEDDB ──
+let db=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('YiWReports_v2',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('reports',{keyPath:'id'});
+    r.onsuccess=e=>{db=e.target.result;res();}; r.onerror=e=>rej(e);
+  });
+}
+function saveDB(d){return new Promise((res,rej)=>{const tx=db.transaction('reports','readwrite');tx.objectStore('reports').put(d);tx.oncomplete=res;tx.onerror=rej;});}
+function getAllDB(){return new Promise((res,rej)=>{const tx=db.transaction('reports','readonly');const req=tx.objectStore('reports').getAll();req.onsuccess=e=>res(e.target.result);req.onerror=rej;});}
+function deleteDB(id){return new Promise((res,rej)=>{const tx=db.transaction('reports','readwrite');tx.objectStore('reports').delete(id);tx.oncomplete=res;tx.onerror=rej;});}
+
+// ── SEND EMAIL (EmailJS) ──
+async function sendEmail(d){
+  const body=buildEmailBody(d);
+  // Using EmailJS template variables
+  return emailjs.send(service_wfflww8,template_fx2s30a,{
+    to_email:'yiw@seghana.net',
+    cc_email:'execdir@seghana.net',
+    from_name:d.fpName,
+    from_email:d.fpEmail||'noreply@seghana.net',
+    reply_to:'noreply@seghana.net',
+    subject:`YiW Field Report — ${d.fpName} | ${d.hubName} | ${d.visitDate}`,
+    report_body:body,
+    hub_name:d.hubName,
+    visit_date:d.visitDate,
+    fp_zone:d.fpZone
+  });
+}
+
+// ── SAVE DRAFT ──
+async function saveDraft(){
+  const d=collect();
+  const[ok,err]=validate(d);
+  if(!ok&&!d.fpName){showToast('Enter at least your name to save','warn');return;}
+  await saveDB(d);
+  showToast('Draft saved to device 💾','ok');
+  refreshList();
+}
+
+// ── SUBMIT ──
+async function submitReport(){
+  const d=collect();
+  const[ok,err]=validate(d);
+  if(!ok){showToast(err,'warn');return;}
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.innerHTML='<span>Submitting…</span>';
+  await saveDB(d);
+  if(navigator.onLine){
+    try{
+      await sendEmail(d);
+      d.status='sent';await saveDB(d);
+      showToast('Report submitted & emailed ✓','ok');
+    } catch(e){
+      console.warn('Email failed:',e);
+      showToast('Saved locally — email will retry when reconnected','warn');
+    }
+  } else {
+    showToast('Saved offline — will email when connected','warn');
+  }
+  btn.disabled=false;btn.innerHTML='<span>✉️ Submit report</span>';
+  refreshList();
+}
+
+async function trySyncPending(){
+  if(!db||!navigator.onLine) return;
+  const all=await getAllDB();
+  const pending=all.filter(r=>r.status==='pending');
+  for(const r of pending){
+    try{await sendEmail(r);r.status='sent';await saveDB(r);}catch(e){}
+  }
+  if(pending.length) refreshList();
+}
+
+async function refreshList(){
+  if(!db) return;
+  const all=(await getAllDB()).sort((a,b)=>b.id-a.id);
+  const el=document.getElementById('savedList');
+  if(!all.length){el.innerHTML='<p style="font-size:13px;color:var(--text3);padding:8px 0">No saved reports yet.</p>';return;}
+  el.innerHTML=all.map(r=>`
+    <div class="saved-item">
+      <div class="saved-icon">${r.status==='sent'?'✅':'⏳'}</div>
+      <div class="saved-info">
+        <strong>${r.visitDate||'No date'} — ${r.fpName||'Unknown FP'}</strong>
+        <small>${r.hubName||'No hub'} · ${r.fpZone||''}</small>
+      </div>
+      <span class="status-pill ${r.status==='sent'?'sp-sent':'sp-pending'}">${r.status==='sent'?'Sent':'Pending'}</span>
+      ${r.status==='pending'&&navigator.onLine?`<button class="btn-icon" onclick="resubmit(${r.id})" title="Resend">📤</button>`:''}
+      <button class="btn-icon" onclick="delReport(${r.id})" title="Delete">🗑</button>
+    </div>`).join('');
+}
+
+async function resubmit(id){
+  const all=await getAllDB();const r=all.find(x=>x.id===id);
+  if(r){try{await sendEmail(r);r.status='sent';await saveDB(r);showToast('Report sent ✓','ok');}catch(e){showToast('Send failed — will retry','warn');}}
+  refreshList();
+}
+async function delReport(id){if(confirm('Delete this report?')){await deleteDB(id);refreshList();}}
+
+// ── PROGRESS BAR ──
+function updateProgress(){
+  const filled=[v('fpName'),v('visitDate'),v('hubName'),v('fpZone')].filter(Boolean).length;
+  const pct=Math.min(100,Math.round(filled/4*40+
+    (ratingVal?15:0)+
+    (mediaSets.photos.length>0?10:0)+
+    (SAFEGUARDING.filter(s=>document.getElementById(s.id)&&document.getElementById(s.id).checked).length/8*35)
+  ));
+  document.getElementById('progressBar').style.width=pct+'%';
+}
+
+// ── SUMMARY (SUBMIT PAGE) ──
+function buildSummary(){
+  const d=collect();
+  const rows=[
+    ['Focal person',d.fpName||'—'],
+    ['Zone',d.fpZone||'—'],
+    ['Visit date',d.visitDate||'—'],
+    ['Hub visited',d.hubName||'—'],
+    ['Visit type',d.visitType||'—'],
+    ['Youth present',Object.values(d.counts).reduce((a,b)=>a+b,0)],
+    ['Activations total',Object.values(d.activations).reduce((a,b)=>a+b,0)],
+    ['Partners engaged',d.partners.length],
+    ['Hub rating',d.rating?d.rating+'/5':'—'],
+    ['Issues flagged',d.issues.length||'None'],
+    ['Documents attached',Object.values(d.docCounts).reduce((a,b)=>a+b,0)],
+    ['Photos / videos',`${d.mediaCounts.photos} / ${d.mediaCounts.videos}`],
+    ['Safeguarding items confirmed',d.safeguardChecked.length+' / 8']
+  ];
+  document.getElementById('summaryRows').innerHTML=rows.map(([k,v])=>
+    `<div class="preview-row"><span>${k}</span><span>${v}</span></div>`).join('');
+}
+
+// ── NAVIGATION ──
+const pages=['p1','p2','p3','p4','p5','p6','p7','p8'];
+function goPage(id,tabEl,scroll){
+  pages.forEach(p=>{
+    document.getElementById(p).classList.toggle('active',p===id);
+  });
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===id));
+  document.querySelectorAll('.bnav-item').forEach((b,i)=>{b.classList.toggle('active',pages[i]===id);});
+  if(id==='p8') buildSummary();
+  if(scroll) window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── TOAST ──
+let toastT;
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast toast-${type||'ok'} show`;
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── ONLINE STATUS ──
+function setOnline(on){
+  document.getElementById('netDot').className='net-dot '+(on?'on':'off');
+  document.getElementById('netLbl').textContent=on?'Online':'Offline';
+  if(on) trySyncPending();
+}
+
+// ── INIT ──
+(async()=>{
+  buildUI();
+  try{await openDB();refreshList();}catch(e){console.warn('DB error',e);}
+  setOnline(navigator.onLine);
+  window.addEventListener('online',()=>setOnline(true));
+  window.addEventListener('offline',()=>setOnline(false));
+  document.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('input',updateProgress));
+})();
+</script>
+</body>
+</html>
