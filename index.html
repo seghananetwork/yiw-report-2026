@@ -1,382 +1,1044 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#1a5c2a">
-  <title>Youth in Work - Daily Field Report Form</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --g: #1a5c2a; 
-      --gm: #2d7a3a; 
-      --gl: #e8f5eb; 
-      --gb: #4caf50;
-      --amber: #e65100;
-      --amberl: #fff3e0;
-      --t1: #1a1a2e; 
-      --t2: #4a5568; 
-      --t3: #718096;
-      --bdr: #dde3ea; 
-      --sh: 0 4px 16px rgba(0,0,0,.05);
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#1a5c2a"/>
+<title>YiW Daily Field Report — SEG Ghana</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --g:#1a5c2a;--gm:#2d7a3a;--gl:#e8f5eb;--gb:#4caf50;
+  --gold:#b8860b;--goldl:#fff8e1;
+  --red:#c62828;--redl:#ffebee;
+  --blue:#1565c0;--bluel:#e3f2fd;
+  --ora:#e65100;--oral:#fff3e0;
+  --teal:#00695c;--teall:#e0f2f1;
+  --grey:#455a64;--greyl:#eceff1;
+  --t1:#1a1a2e;--t2:#4a5568;--t3:#718096;
+  --bdr:#dde3ea;--sh:0 2px 12px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif}
+body{background:#f3f7f4;color:var(--t1);min-height:100vh;padding-bottom:80px;display:flex;flex-direction:column}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background: #f4f7f5; color: var(--t1); padding: 15px; display: flex; flex-direction: column; align-items: center; }
+/* TOP BAR */
+.topbar{background:linear-gradient(135deg,var(--g),var(--gm));color:#fff;padding:0 20px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.tlogo h1{font-size:15px;font-weight:700}
+.tlogo p{font-size:10px;opacity:.8;margin-top:1px}
+.npill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600}
+.ndot{width:8px;height:8px;border-radius:50%}
+.ndot.on{background:#69f0ae;box-shadow:0 0 7px #69f0ae}
+.ndot.off{background:#ff5252}
 
-    .app-container { width: 100%; max-width: 500px; background: #ffffff; border-radius: 16px; box-shadow: var(--sh); overflow: hidden; margin-bottom: 20px; }
-    
-    /* Header Branding */
-    .app-header { background: var(--g); color: #ffffff; padding: 20px; text-align: center; position: relative; }
-    .app-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-    .app-header p { font-size: 12px; color: var(--gl); opacity: 0.9; }
+/* SIDEBAR (desktop) */
+.app-container{display:flex;flex:1;position:relative}
+.sidebar{width:255px;background:#fff;border-right:1px solid var(--bdr);display:none;flex-direction:column;padding:16px 0;position:fixed;top:62px;bottom:0;left:0;z-index:90;overflow-y:auto}
+.side-item{padding:11px 20px;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:9px;transition:all .15s;border-left:4px solid transparent}
+.side-item:hover{background:#f8fafc;color:var(--g)}
+.side-item.active{background:var(--gl);color:var(--g);border-left-color:var(--g);font-weight:700}
 
-    /* Connectivity Banner */
-    #status-banner { padding: 8px 12px; text-align: center; font-size: 12px; font-weight: 600; transition: all 0.3s ease; }
-    .online-mode { background: var(--gl); color: var(--g); }
-    .offline-mode { background: var(--amberl); color: var(--amber); }
+/* TABS (mobile) */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--bdr);overflow-x:auto;position:sticky;top:62px;z-index:99;scrollbar-width:none;box-shadow:var(--sh)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:12px 14px;font-size:12.5px;font-weight:500;color:var(--t3);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.tab.active{color:var(--g);border-bottom-color:var(--g);background:var(--gl);font-weight:700}
 
-    /* Form Components */
-    form { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 13px; font-weight: 600; color: var(--t2); }
-    
-    input[type="text"], input[type="datetime-local"], select, textarea {
-      width: 100%; padding: 12px; border: 1px solid var(--bdr); border-radius: 8px; font-size: 14px; 
-      color: var(--t1); background: #fafafa; transition: border 0.2s; outline: none;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--gm); background: #ffffff; }
-    
-    /* Row Split for Counters */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .counter-wrapper { display: flex; align-items: center; border: 1px solid var(--bdr); border-radius: 8px; background: #fafafa; overflow: hidden; }
-    .counter-btn { width: 40px; height: 44px; background: #eeeeee; border: none; font-size: 18px; font-weight: 600; cursor: pointer; color: var(--t2); }
-    .counter-btn:active { background: #e0e0e0; }
-    .counter-val { flex: 1; text-align: center; font-weight: 600; font-size: 15px; border: none; background: transparent; pointer-events: none; }
+/* PAGES */
+.content-frame{flex:1;padding:14px;width:100%;max-width:100%}
+.page{display:none;max-width:900px;margin:0 auto;animation:fadeIn .18s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
-    /* Media Upload Area */
-    .file-input-label {
-      border: 2px dashed var(--bdr); border-radius: 8px; padding: 20px; text-align: center;
-      cursor: pointer; background: #fafafa; font-size: 13px; color: var(--t3); font-weight: 500;
-    }
-    .file-input-label:hover { border-color: var(--gm); background: var(--gl); }
-    #fileList { font-size: 11px; color: var(--t2); margin-top: 5px; list-style: none; padding-left: 5px; }
+/* DESKTOP */
+@media(min-width:768px){
+  body{padding-bottom:0}
+  .tabs{display:none}
+  .sidebar{display:flex}
+  .content-frame{margin-left:255px;padding:28px}
+  .bnav{display:none}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+}
 
-    /* Action Buttons */
-    .btn-submit { 
-      background: var(--g); color: #ffffff; border: none; padding: 14px; border-radius: 8px; 
-      font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: background 0.2s;
-    }
-    .btn-submit:hover { background: var(--gm); }
+/* CARDS */
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:var(--sh);border:1px solid var(--bdr)}
+.ca{border-left:4px solid var(--g)}.cb{border-left:4px solid var(--blue)}.cr{border-left:4px solid var(--red)}.ct{border-left:4px solid var(--teal)}.cg{border-left:4px solid var(--gold)}
+.sec-hdr{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.sec-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sec-title{font-size:14px;font-weight:700;color:var(--t1)}
+.sec-sub{font-size:11px;color:var(--t3);margin-top:2px}
 
-    /* Saved Reports Log Section */
-    .registry-container { width: 100%; max-width: 500px; background: #ffffff; border-radius: 16px; box-shadow: var(--sh); padding: 20px; }
-    .registry-title { font-size: 14px; font-weight: 700; color: var(--t2); margin-bottom: 12px; border-bottom: 1px solid var(--bdr); padding-bottom: 6px; }
-    .report-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; }
-    .report-item:last-child { border: none; }
-    .status-pill { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 12px; text-transform: uppercase; }
-    .status-pill.pending { background: var(--amberl); color: var(--amber); }
-    .status-pill.sent { background: var(--gl); color: var(--g); }
+/* FIELDS */
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:11.5px;font-weight:600;color:var(--t2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.inp,select,textarea{width:100%;padding:10px 11px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13.5px;outline:none;transition:all .15s;color:var(--t1);background:#fafcfb;appearance:none}
+.inp:focus,select:focus,textarea:focus{border-color:var(--gm);background:#fff;box-shadow:0 0 0 3px rgba(26,92,42,.09)}
+textarea{resize:vertical;min-height:72px;line-height:1.6}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%23718096'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
 
-    /* Toast Notification */
-    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 13px; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-  </style>
+/* COUNTERS */
+.ctr-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed #e8edf0}
+.ctr-row:last-child{border-bottom:none}
+.ctr-lbl{font-size:13px;color:var(--t2);font-weight:500}
+.ctr-ctrl{display:flex;align-items:center;gap:3px}
+.ctr-btn{width:34px;height:34px;border:none;background:var(--g);color:#fff;font-size:19px;font-weight:300;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;transition:opacity .12s}
+.ctr-btn:active{opacity:.8}
+.ctr-inp{width:58px;height:34px;text-align:center;font-size:14px;font-weight:700;color:var(--g);border:1.5px solid var(--bdr);border-radius:7px;background:#fff;font-family:'Inter',sans-serif}
+.ctr-inp:focus{outline:none;border-color:var(--gm)}
+
+/* CHECKLIST */
+.chk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.chk-grid{grid-template-columns:1fr}}
+.chk-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--t2);cursor:pointer;padding:10px 11px;border:1.5px solid var(--bdr);border-radius:8px;background:#f8fafc;transition:all .12s;user-select:none}
+.chk-item.on{border-color:var(--gm);background:var(--gl);color:var(--g);font-weight:600}
+.chk-item.flagged{border-color:var(--red);background:var(--redl);color:var(--red);font-weight:600}
+.chk-item input{display:none}
+.cbox{width:17px;height:17px;border:1.5px solid #cbd5e0;border-radius:5px;display:flex;align-items:center;justify-content:center;background:#fff;flex-shrink:0;transition:all .12s}
+.chk-item.on .cbox{background:var(--g);border-color:var(--g)}
+.chk-item.on .cbox::after{content:'✓';color:#fff;font-size:10px;font-weight:700}
+.chk-item.flagged .cbox{background:var(--red);border-color:var(--red)}
+.chk-item.flagged .cbox::after{content:'!';color:#fff;font-size:10px;font-weight:700}
+
+/* STAR RATING */
+.stars{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+.star-btn{padding:7px 13px;border:1.5px solid var(--bdr);border-radius:8px;background:#f8fafc;font-size:12px;font-weight:500;cursor:pointer;color:var(--t3);transition:all .12s}
+.star-btn:hover{border-color:var(--grey);background:var(--greyl)}
+.r1,.r2{border-color:var(--red)!important;background:var(--redl)!important;color:var(--red)!important;font-weight:700!important}
+.r3{border-color:var(--gold)!important;background:var(--goldl)!important;color:var(--gold)!important;font-weight:700!important}
+.r4,.r5{border-color:var(--gm)!important;background:var(--gl)!important;color:var(--g)!important;font-weight:700!important}
+
+/* MEDIA / DOCS */
+.capture-cluster{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:5px}
+.mzone{border:2px dashed var(--bdr);border-radius:9px;padding:13px 10px;text-align:center;background:#f8fafc;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80px}
+.mzone:hover{border-color:var(--gm);background:var(--gl)}
+.mzone-icon{font-size:22px;margin-bottom:3px}
+.mzone p{font-size:12px;color:var(--t2);font-weight:600}
+.mzone strong{font-size:10.5px;color:var(--g);display:block;margin-top:2px}
+.file-list{margin-top:8px}
+.file-badge{background:#f1f5f9;padding:8px 11px;border-radius:7px;font-size:11px;display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;border:1px solid var(--bdr)}
+.file-badge button{background:none;border:none;color:var(--red);font-weight:700;cursor:pointer;padding:0 6px;font-size:14px}
+.mprev{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.mthumb{width:72px;height:72px;border-radius:7px;border:1px solid var(--bdr);position:relative;background:#e2e8f0;overflow:hidden;flex-shrink:0}
+.mthumb img{width:100%;height:100%;object-fit:cover}
+.mthumb .vlbl{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--t2);text-align:center;padding:4px}
+.mthumb-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* PARTNER TABLE */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--bdr);border-radius:9px;margin-bottom:10px}
+.ptbl{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;background:#fff}
+.ptbl th{background:#f8fafc;padding:10px 9px;border-bottom:2px solid var(--bdr);font-weight:700;color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.ptbl td{padding:8px 7px;border-bottom:1px solid #f0f4f0;vertical-align:top}
+.ptbl tr:hover td{background:#fafdfb}
+.pinp{width:100%;padding:6px 7px;border:1px solid var(--bdr);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif}
+.ptxt{width:100%;padding:6px 7px;border:1px solid var(--bdr);border-radius:5px;font-size:11px;height:46px;resize:none;font-family:'Inter',sans-serif}
+.psel{padding:6px 7px;border:1px solid var(--bdr);border-radius:5px;font-size:11.5px;background:#fff;width:100%;font-family:'Inter',sans-serif}
+.pinp:focus,.ptxt:focus,.psel:focus{outline:none;border-color:var(--gm)}
+.btn-del-row{background:none;border:none;color:var(--red);font-size:17px;cursor:pointer;padding:3px}
+.btn-add{background:var(--gl);color:var(--g);border:1.5px dashed var(--gm);padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-top:6px;transition:all .12s}
+.btn-add:hover{background:var(--gm);color:#fff}
+
+/* PARTNER PROGRESS BAR */
+.p-progress{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--bdr)}
+.p-progress span{font-size:12px;color:var(--t3)}
+.p-num{font-size:22px;font-weight:800;color:var(--g)}
+.p-bar-wrap{flex:1;height:7px;background:var(--greyl);border-radius:4px;overflow:hidden}
+.p-bar{height:100%;background:linear-gradient(90deg,var(--gb),#8bc34a);border-radius:4px;width:0%;transition:width .3s}
+
+/* PROCESSING BAR */
+.proc-wrap{display:none;background:#f1f5f9;padding:12px;border-radius:8px;border:1px solid var(--bdr);margin-top:10px}
+.proc-lbl{font-size:11px;font-weight:700;color:var(--t2);margin-bottom:4px;display:flex;justify-content:space-between}
+.proc-bar-outer{width:100%;height:8px;background:#cbd5e1;border-radius:4px;overflow:hidden}
+.proc-bar-inner{width:0%;height:100%;background:var(--g);transition:width .1s}
+
+/* INFO / WARN BOXES */
+.info-box{background:var(--bluel);border-left:4px solid var(--blue);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue);margin-bottom:12px;line-height:1.6}
+.warn-box{background:var(--oral);border-left:4px solid var(--ora);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--ora);margin-bottom:12px;line-height:1.6}
+.sec-label{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;padding-bottom:6px;border-bottom:1.5px solid var(--greyl)}
+.divider{height:1px;background:var(--greyl);margin:12px 0}
+
+/* SAFEGUARDING */
+.safe-item{display:flex;align-items:flex-start;gap:9px;padding:10px 11px;border:1.5px solid var(--bdr);border-radius:8px;margin-bottom:6px;background:#f8fafc;cursor:pointer;transition:all .12s;user-select:none}
+.safe-item:last-child{margin-bottom:0}
+.safe-item.confirmed{background:var(--teall);border-color:var(--teal)}
+.safe-chk{width:20px;height:20px;border:2px solid #cbd5e0;border-radius:5px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .12s}
+.safe-item.confirmed .safe-chk{background:var(--teal);border-color:var(--teal)}
+.safe-item.confirmed .safe-chk::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
+.safe-txt strong{display:block;font-size:13px;color:var(--t1);font-weight:600}
+.safe-txt span{font-size:11px;color:var(--t3)}
+.safe-item input{display:none}
+
+/* SUBMIT / PREVIEW */
+.preview-card{background:linear-gradient(135deg,var(--gl) 0%,#f0fff4 100%);border:1.5px solid var(--gm);border-radius:12px;padding:16px;margin-bottom:14px}
+.preview-card h3{font-size:13px;font-weight:700;color:var(--g);margin-bottom:11px}
+.prev-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+@media(max-width:480px){.prev-grid{grid-template-columns:1fr}}
+.prev-item{background:#fff;border-radius:8px;padding:8px 10px;border:1px solid rgba(45,122,58,.15)}
+.pi-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.pi-val{font-size:13px;font-weight:700;color:var(--g)}
+.email-banner{background:var(--bluel);border:1.5px solid #90caf9;border-radius:10px;padding:11px 13px;font-size:12px;color:var(--blue);margin-bottom:14px;line-height:1.6}
+.btn-submit{background:var(--g);color:#fff;width:100%;padding:13px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(26,92,42,.25);margin-top:8px;transition:all .15s}
+.btn-submit:hover{background:var(--gm);transform:translateY(-1px)}
+.btn-submit:disabled{background:var(--t3);cursor:not-allowed;transform:none;box-shadow:none}
+.btn-draft{background:#fff;color:var(--t2);width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;transition:all .12s}
+.btn-draft:hover{background:var(--greyl)}
+
+/* SAVED LOG */
+.log-title{font-size:13px;font-weight:700;color:var(--t2);margin:18px 0 8px;display:flex;align-items:center;gap:5px}
+.log-item{background:#fff;border:1px solid var(--bdr);padding:11px 13px;border-radius:8px;font-size:12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)}
+.spill{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase}
+.spill.pending{background:var(--goldl);color:var(--gold)}
+.spill.sent{background:var(--gl);color:var(--g)}
+
+/* BOTTOM NAV */
+.bnav{background:#fff;border-top:1px solid var(--bdr);position:fixed;bottom:0;left:0;right:0;height:62px;display:flex;z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,.05)}
+.bni{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--t3);cursor:pointer;flex:1;height:100%;transition:all .12s}
+.bni.active{color:var(--g);background:#fafdfb;font-weight:700}
+.bi{font-size:18px;margin-bottom:2px}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a2e1a;color:#fff;padding:11px 22px;border-radius:25px;font-size:12px;font-weight:500;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:0 4px 16px rgba(0,0,0,.25);text-align:center;max-width:90%}
+.toast.show{opacity:1}
+</style>
 </head>
 <body>
 
-  <div class="app-container">
-    <div class="app-header">
-      <h1>Youth in Work</h1>
-      <p>Daily Field Report Form</p>
-    </div>
-    
-    <div id="status-banner" class="online-mode">Checking Network Status...</div>
+<div class="topbar">
+  <div class="tlogo"><h1>YiW Field Report</h1><p>SEG Ghana — Youth in Work Programme</p></div>
+  <div class="npill"><div id="netDot" class="ndot on"></div><span id="netText">Online</span></div>
+</div>
 
-    <form id="reportForm">
-      <div class="form-group">
-        <label for="focalPerson">Focal Person Name</label>
-        <select id="focalPerson" required>
-          <option value="">-- Select Your Name --</option>
-          <option value="Abigail Mensah">Abigail Mensah</option>
-          <option value="Emmanuel Osei">Emmanuel Osei</option>
-          <option value="Kwame Asare">Kwame Asare</option>
-          <option value="Mary Appiah">Mary Appiah</option>
+<div class="app-container">
+
+<!-- DESKTOP SIDEBAR -->
+<div class="sidebar" id="sideNav">
+  <div class="side-item active" data-page="p1" onclick="showPage('p1')">📋 Visit Details</div>
+  <div class="side-item" data-page="p2" onclick="showPage('p2')">🎓 Activation & Employment</div>
+  <div class="side-item" data-page="p3" onclick="showPage('p3')">🏢 Hub Quality</div>
+  <div class="side-item" data-page="p4" onclick="showPage('p4')">🤝 Partner Engagement</div>
+  <div class="side-item" data-page="p5" onclick="showPage('p5')">📎 Documents</div>
+  <div class="side-item" data-page="p6" onclick="showPage('p6')">📸 Photos & Videos</div>
+  <div class="side-item" data-page="p7" onclick="showPage('p7')">🛡 Safeguarding</div>
+  <div class="side-item" data-page="p8" onclick="showPage('p8')">✉️ Review & Submit</div>
+</div>
+
+<!-- MOBILE TABS -->
+<div class="tabs" id="tabStrip">
+  <div class="tab active" data-page="p1" onclick="showPage('p1')">📋 Visit</div>
+  <div class="tab" data-page="p2" onclick="showPage('p2')">🎓 Activate</div>
+  <div class="tab" data-page="p3" onclick="showPage('p3')">🏢 Quality</div>
+  <div class="tab" data-page="p4" onclick="showPage('p4')">🤝 Partners</div>
+  <div class="tab" data-page="p5" onclick="showPage('p5')">📎 Docs</div>
+  <div class="tab" data-page="p6" onclick="showPage('p6')">📸 Media</div>
+  <div class="tab" data-page="p7" onclick="showPage('p7')">🛡 Safe</div>
+  <div class="tab" data-page="p8" onclick="showPage('p8')">✉️ Submit</div>
+</div>
+
+<div class="content-frame">
+
+<!-- ══ PAGE 1 — VISIT DETAILS ══ -->
+<div class="page active" id="p1">
+  <div class="g2">
+    <div class="card ca">
+      <div class="sec-hdr">
+        <div class="sec-icon" style="background:var(--gl);color:var(--g)">👤</div>
+        <div><div class="sec-title">Focal Person Details</div><div class="sec-sub">Who is completing this report?</div></div>
+      </div>
+      <div class="field"><label>Full name *</label><input type="text" id="fpName" class="inp" placeholder="Enter full name"/></div>
+      <div class="field"><label>Phone number *</label><input type="tel" id="fpPhone" class="inp" placeholder="e.g. 024XXXXXXX"/></div>
+      <div class="field"><label>Email address</label><input type="email" id="fpEmail" class="inp" placeholder="name@example.com"/></div>
+      <div class="field"><label>Zone / Region *</label>
+        <select id="fpZone">
+          <option value="">Select zone…</option>
+          <option>Greater Accra</option><option>Ashanti</option><option>Northern</option>
+          <option>Western</option><option>Central</option><option>Eastern</option>
+          <option>Volta</option><option>Upper East</option><option>Upper West</option>
+          <option>Bono</option><option>Bono East</option><option>Savannah</option>
+          <option>Oti</option><option>Ahafo</option><option>North East</option><option>Western North</option>
         </select>
       </div>
-
-      <div class="form-group">
-        <label for="visitDate">Date & Time of Visit</label>
-        <input type="datetime-local" id="visitDate" required>
-      </div>
-
-      <div class="form-group">
-        <label for="hubName">Hub / Partner Name</label>
-        <input type="text" id="hubName" placeholder="Enter Hub or Partner name" required>
-      </div>
-
-      <div class="form-group">
-        <label for="visitType">Type of Visit</label>
-        <select id="visitType" required>
-          <option value="">-- Select Visit Objective --</option>
-          <option value="Routine Monitoring">Routine Monitoring</option>
-          <option value="Training Session">Training Session</option>
-          <option value="Emergency / Issue Resolution">Emergency / Issue Resolution</option>
-          <option value="Event / Milestone Launch">Event / Milestone Launch</option>
+      <div class="field"><label>Date of visit *</label><input type="date" id="visitDate" class="inp"/></div>
+      <div class="field"><label>Visit type *</label>
+        <select id="visitType">
+          <option value="">Select…</option>
+          <option>Routine monitoring</option><option>Training supervision</option>
+          <option>Document collection</option><option>Partner engagement</option>
+          <option>Youth activation</option><option>Troubleshooting / support</option>
+          <option>Attendance data collection</option><option>MoU signing</option>
         </select>
       </div>
+    </div>
 
-      <div class="form-group">
-        <label>Youth Attendance Counter</label>
-        <div class="grid-2">
-          <div>
-            <span style="font-size:11px; color:var(--t3); display:block; margin-bottom:4px;">Male Count</span>
-            <div class="counter-wrapper">
-              <button type="button" class="counter-btn" onclick="adjustCount('maleCount', -1)">-</button>
-              <input type="number" id="maleCount" class="counter-val" value="0">
-              <button type="button" class="counter-btn" onclick="adjustCount('maleCount', 1)">+</button>
-            </div>
-          </div>
-          <div>
-            <span style="font-size:11px; color:var(--t3); display:block; margin-bottom:4px;">Female Count</span>
-            <div class="counter-wrapper">
-              <button type="button" class="counter-btn" onclick="adjustCount('femaleCount', -1)">-</button>
-              <input type="number" id="femaleCount" class="counter-val" value="0">
-              <button type="button" class="counter-btn" onclick="adjustCount('femaleCount', 1)">+</button>
-            </div>
-          </div>
-        </div>
+    <div class="card cb">
+      <div class="sec-hdr">
+        <div class="sec-icon" style="background:var(--bluel);color:var(--blue)">📍</div>
+        <div><div class="sec-title">Training Centre Details</div><div class="sec-sub">Where is the visit taking place?</div></div>
       </div>
-
-      <div class="form-group">
-        <label for="activities">Key Activities Conducted</label>
-        <textarea id="activities" rows="3" placeholder="What activities took place?" required></textarea>
+      <div class="field"><label>Hub / Training Service Provider *</label>
+        <select id="hubName">
+          <option value="">Select hub…</option>
+          <option>Accra Technical University — Greater Accra — Accra</option>
+          <option>AfriTech Hub — Northern Region — Tamale</option>
+          <option>Agrico Hub — Bono East Region — Techiman</option>
+          <option>Agritech — Eastern Region — Teacher Mante</option>
+          <option>Boabab Entrepreneurs — Ahafo Region — Mim</option>
+          <option>Code Coast — Central Region — Cape Coast / Ekumfi</option>
+          <option>Core Business Solutions — Bono Region — Sunyani</option>
+          <option>CRIS Hub — Savannah Region — Damongo</option>
+          <option>Dansyn ISO — Upper East Region — Bolgatanga</option>
+          <option>Developers Academy — Oti Region — Dambai</option>
+          <option>Duapa Werkspace — Western Region — Takoradi</option>
+          <option>Edugha Institute for Social Development — Northern Region — Tamale</option>
+          <option>EMB Ahenfie — Ashanti Region — Kumasi</option>
+          <option>Ghana Chamber of Entrepreneurs with Disabilities — Greater Accra</option>
+          <option>GSP Hub — Volta Region — Ho</option>
+          <option>His Majesty Farms — Western North Region — Tarkwa</option>
+          <option>Innovation Light LGB — North East Region — Gambaga</option>
+          <option>Ketiwa Enterprise — Ahafo Region — Goaso</option>
+          <option>Kumasi City Incubation Hub — Ashanti Region — Kumasi</option>
+          <option>MB Hub — Western Region — Takoradi</option>
+          <option>Nneka Youth Foundation — Volta Region — Ve-Agbome near Hohoe</option>
+          <option>Noni Hub — Upper West Region — Wa</option>
+          <option>Northern Innovation Lab Foundation — North East Region — Walewale</option>
+          <option>Qet Farms — Eastern Region — Teacher Mante near Suhum</option>
+          <option>Rutab Hub — Western North Region — Sefwi Wiawso</option>
+          <option>Sabon Sake — Volta Region — Sogakope</option>
+          <option>The Assistance Hub — Northern Region — Tamale</option>
+          <option>Ubunju Innovation Hub — Eastern Region — Koforidua</option>
+          <option>Upward Motion Foundation — Central Region — Gomoa Obuasi</option>
+          <option>Wislaw Educational Fund — Western North Region — Tarkwa</option>
+          <option>Wo'Afrique Tech Hub — Central Region — Winneba</option>
+          <option>Other — specify below</option>
+        </select>
       </div>
-
-      <div class="form-group">
-        <label for="challenges">Challenges Observed</label>
-        <textarea id="challenges" rows="3" placeholder="Describe any problems or issues encountered..."></textarea>
+      <div class="field"><label>If "Other" — Hub name</label><input type="text" id="hubOther" class="inp" placeholder="Full name of hub or TSP"/></div>
+      <div class="field"><label>Community *</label><input type="text" id="community" class="inp" placeholder="e.g. Nima, Bantama, Tamale Central"/></div>
+      <div class="field"><label>Training centre name *</label><input type="text" id="trainingCentre" class="inp" placeholder="e.g. Nima Community Centre"/></div>
+      <div class="field"><label>Centre address / landmark</label><input type="text" id="centreAddress" class="inp" placeholder="Street, area, or nearby landmark"/></div>
+      <div class="field"><label>Centre contact person</label><input type="text" id="hubContact" class="inp" placeholder="Name and role"/></div>
+      <div class="field"><label>Contact phone</label><input type="tel" id="hubContactPhone" class="inp" placeholder="+233 XX XXX XXXX"/></div>
+      <div class="g2">
+        <div class="field"><label>Time arrived</label><input type="time" id="tArr" class="inp"/></div>
+        <div class="field"><label>Time departed</label><input type="time" id="tDep" class="inp"/></div>
       </div>
-
-      <div class="form-group">
-        <label for="recommendations">Recommendations / Next Steps</label>
-        <textarea id="recommendations" rows="3" placeholder="Actionable action items or timeline points..."></textarea>
-      </div>
-
-      <div class="form-group">
-        <label>Media Upload (Photos / Documents)</label>
-        <label for="fileUpload" class="file-input-label">📸 Click to Choose or Take Photos</label>
-        <input type="file" id="fileUpload" multiple accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelection()">
-        <ul id="fileList"></ul>
-      </div>
-
-      <button type="submit" class="btn-submit">Submit Field Report</button>
-    </form>
-  </div>
-
-  <div class="registry-container">
-    <div class="registry-title">Saved Field Reports Log</div>
-    <div id="savedRegistry">
-      <p style="font-size:12px; color:var(--t3); text-align:center; padding:10px;">No cached field reports located.</p>
     </div>
   </div>
 
-  <div id="toast"></div>
+  <div class="card cg">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--goldl);color:var(--gold)">👥</div>
+      <div><div class="sec-title">Attendance Count</div><div class="sec-sub">Youth and staff present during your visit</div></div>
+    </div>
+    <div id="attendanceWrap"></div>
+  </div>
+</div>
 
-  <script>
-    // Configuration Target Pipeline URL
-    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+<!-- ══ PAGE 2 — ACTIVATION ══ -->
+<div class="page" id="p2">
+  <div class="info-box">📌 <strong>Role 1:</strong> Link ACTIVATE participants from training directly into employment — jobs, internships, and cooperatives.</div>
+  <div class="card ca">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--gl);color:var(--g)">🚀</div>
+      <div><div class="sec-title">Employment & Placement Outcomes</div><div class="sec-sub">Youth activated today</div></div>
+    </div>
+    <div id="activationWrap"></div>
+    <div class="divider"></div>
+    <div class="field"><label>Names of youth placed today (one per line)</label><textarea id="youthNames" placeholder="e.g.&#10;Kofi Asante — Internship at ADB Bank&#10;Akosua Boateng — Cooperative farming group"></textarea></div>
+    <div class="g2">
+      <div class="field"><label>Employer / cooperative name(s)</label><input type="text" id="empName" class="inp" placeholder="Company, cooperative, or internship host"/></div>
+      <div class="field"><label>Sector of placement</label>
+        <select id="empSector">
+          <option value="">Select…</option>
+          <option>Agriculture / Agribusiness</option><option>ICT / Digital</option>
+          <option>Manufacturing</option><option>Construction / Trade</option>
+          <option>Financial services</option><option>Health / Care</option>
+          <option>Education / Training</option><option>Hospitality / Tourism</option>
+          <option>Creative industries</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="card cb">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--bluel);color:var(--blue)">📚</div>
+      <div><div class="sec-title">Training Enrolment</div><div class="sec-sub">New participants enrolled today</div></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>New enrolments (male)</label><input type="number" id="enrolM" class="inp" min="0" value="0"/></div>
+      <div class="field"><label>New enrolments (female)</label><input type="number" id="enrolF" class="inp" min="0" value="0"/></div>
+    </div>
+    <div class="field"><label>Course / trade enrolled in</label><input type="text" id="enrolCourse" class="inp" placeholder="e.g. Digital Marketing, Welding, Tailoring"/></div>
+    <div class="field"><label>Key success story / highlight</label><textarea id="highlight" placeholder="Describe a specific positive outcome or inspiring moment from today's visit…"></textarea></div>
+    <div class="field"><label>Youth voice / direct quote</label><textarea id="yVoice" placeholder="Direct quote or paraphrased feedback from a young participant…" style="min-height:60px"></textarea></div>
+  </div>
+</div>
 
-    let db = null;
-    let selectedFilesCache = [];
+<!-- ══ PAGE 3 — HUB QUALITY ══ -->
+<div class="page" id="p3">
+  <div class="info-box">📌 <strong>Role 2:</strong> Oversee Training Service Providers, ensuring quality delivery and compliance.</div>
+  <div class="card ca">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--gl);color:var(--g)">⭐</div>
+      <div><div class="sec-title">Training Centre Quality Rating</div><div class="sec-sub">Overall performance today</div></div>
+    </div>
+    <div class="field"><label>Overall rating (tap to select)</label><div class="stars" id="ratingStars"></div></div>
+    <div class="divider"></div>
+    <div class="sec-label">✅ Quality indicators observed</div>
+    <div class="chk-grid" id="qualityGrid"></div>
+  </div>
+  <div class="g2">
+    <div class="card cr">
+      <div class="sec-hdr">
+        <div class="sec-icon" style="background:var(--redl);color:var(--red)">⚠️</div>
+        <div><div class="sec-title">Issues Flagged</div><div class="sec-sub">Select all observed</div></div>
+      </div>
+      <div id="issuesGrid"></div>
+    </div>
+    <div class="card">
+      <div class="sec-hdr">
+        <div class="sec-icon" style="background:var(--greyl);color:var(--grey)">🔌</div>
+        <div><div class="sec-title">Facilities & Resources</div><div class="sec-sub">Available at centre today</div></div>
+      </div>
+      <div class="chk-grid" id="facilitiesGrid"></div>
+    </div>
+  </div>
+  <div class="card cb">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--bluel);color:var(--blue)">📊</div>
+      <div><div class="sec-title">Activities Observed</div><div class="sec-sub">What was in progress during your visit?</div></div>
+    </div>
+    <div class="chk-grid" id="activitiesGrid"></div>
+  </div>
+  <div class="card ct">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--teall);color:var(--teal)">📝</div>
+      <div><div class="sec-title">Assessment Narrative</div></div>
+    </div>
+    <div class="field"><label>Challenges observed</label><textarea id="challenges" placeholder="Barriers, problems, or concerns noted during the visit…"></textarea></div>
+    <div class="field"><label>Recommendations / support needed</label><textarea id="recommendations" placeholder="What action is needed from the programme team?"></textarea></div>
+    <div class="g2">
+      <div class="field"><label>Urgency of action</label>
+        <select id="urgency">
+          <option value="">Select…</option>
+          <option>No action needed</option><option>Within the week</option>
+          <option>Within 48 hours</option><option>Urgent — same day</option>
+        </select>
+      </div>
+      <div class="field"><label>Follow-up by whom</label><input type="text" id="followUpBy" class="inp" placeholder="Name / team responsible"/></div>
+    </div>
+  </div>
+</div>
 
-    // Initialize Viewport Defaults
-    window.addEventListener('DOMContentLoaded', () => {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById('visitDate').value = now.toISOString().slice(0,16);
-      initIndexedDatabase();
-      setupNetworkListeners();
+<!-- ══ PAGE 4 — PARTNERS ══ -->
+<div class="page" id="p4">
+  <div class="info-box">📌 <strong>Role 4:</strong> Engage and verify at least 15 partner companies per zone before contracts are confirmed.</div>
+  <div class="warn-box">⚡ <strong>Target: 15 partners per zone.</strong> Record every company visited or contacted today, even if only 1–2.</div>
+  <div class="card cb">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--bluel);color:var(--blue)">🤝</div>
+      <div><div class="sec-title">Partner Companies Engaged Today</div><div class="sec-sub">Include business profile and skills needed for each</div></div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="ptbl">
+        <thead><tr>
+          <th style="min-width:120px">Company name</th>
+          <th style="min-width:85px">Location</th>
+          <th style="min-width:90px">Sector</th>
+          <th style="min-width:155px">Business profile</th>
+          <th style="min-width:145px">Skills they want trained</th>
+          <th style="min-width:90px">Contact name</th>
+          <th style="min-width:100px">Phone</th>
+          <th style="min-width:95px">Status</th>
+          <th style="min-width:65px">Youth slots</th>
+          <th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="ptbody"></tbody>
+      </table>
+    </div>
+    <button type="button" class="btn-add" onclick="addPartnerRow()">➕ Add company</button>
+    <div class="p-progress">
+      <span>Partners today:</span>
+      <span class="p-num" id="pcount">0</span>
+      <span>/ 15 zone target</span>
+      <div class="p-bar-wrap"><div class="p-bar" id="pbar"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="field"><label>Partner engagement notes</label><textarea id="partnerNotes" placeholder="Barriers to signing, promising leads, upcoming meetings…"></textarea></div>
+    <div class="field"><label>Next partner engagement date</label><input type="date" id="nextPDate" class="inp"/></div>
+  </div>
+</div>
+
+<!-- ══ PAGE 5 — DOCUMENTS ══ -->
+<div class="page" id="p5">
+  <div class="info-box">📌 <strong>Roles 3 & 5:</strong> Scan and send attendance sheets, financial documents, MoUs. Upload monthly tracking sheets.</div>
+  <div class="card cb">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--bluel);color:var(--blue)">📄</div>
+      <div><div class="sec-title">Document Uploads</div><div class="sec-sub">Use camera to scan or browse to attach files. Images are auto-compressed.</div></div>
+    </div>
+    <div class="field" style="margin-bottom:18px">
+      <label>Attendance sheets</label>
+      <div class="capture-cluster">
+        <label class="mzone"><input type="file" id="cAtt" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this,'dAtt','listAtt')"><div class="mzone-icon">📸</div><p>Scan / Take Photo</p><strong>Opens Camera</strong></label>
+        <label class="mzone"><input type="file" id="fAtt" accept="image/*,.pdf" multiple style="display:none" onchange="handleFileSelect(this,'dAtt','listAtt')"><div class="mzone-icon">📁</div><p>Browse Files</p><strong>PDF or Image</strong></label>
+      </div>
+      <div class="file-list" id="listAtt"></div>
+    </div>
+    <div class="field" style="margin-bottom:18px">
+      <label>Financial documents</label>
+      <div class="capture-cluster">
+        <label class="mzone"><input type="file" id="cFin" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this,'dFin','listFin')"><div class="mzone-icon">📸</div><p>Scan / Take Photo</p><strong>Opens Camera</strong></label>
+        <label class="mzone"><input type="file" id="fFin" accept="image/*,.pdf" multiple style="display:none" onchange="handleFileSelect(this,'dFin','listFin')"><div class="mzone-icon">📁</div><p>Browse Files</p><strong>Receipts / Invoices</strong></label>
+      </div>
+      <div class="file-list" id="listFin"></div>
+    </div>
+    <div class="field" style="margin-bottom:18px">
+      <label>MoUs & signed agreements</label>
+      <div class="capture-cluster">
+        <label class="mzone"><input type="file" id="cMou" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this,'dMou','listMou')"><div class="mzone-icon">📸</div><p>Scan / Take Photo</p><strong>Opens Camera</strong></label>
+        <label class="mzone"><input type="file" id="fMou" accept="image/*,.pdf" multiple style="display:none" onchange="handleFileSelect(this,'dMou','listMou')"><div class="mzone-icon">📁</div><p>Browse Files</p><strong>Scanned copies</strong></label>
+      </div>
+      <div class="file-list" id="listMou"></div>
+    </div>
+    <div class="field">
+      <label>YiW tracking sheets (monthly)</label>
+      <div class="capture-cluster">
+        <label class="mzone"><input type="file" id="cTrack" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this,'dTrack','listTrack')"><div class="mzone-icon">📸</div><p>Scan / Take Photo</p><strong>Opens Camera</strong></label>
+        <label class="mzone"><input type="file" id="fTrack" accept="image/*,.pdf,.xlsx,.csv,.xls" multiple style="display:none" onchange="handleFileSelect(this,'dTrack','listTrack')"><div class="mzone-icon">📁</div><p>Browse Files</p><strong>Excel / CSV / PDF</strong></label>
+      </div>
+      <div class="file-list" id="listTrack"></div>
+    </div>
+  </div>
+  <div class="card"><div class="field"><label>Document notes</label><textarea id="docNotes" placeholder="What the documents cover, date range, which hub they relate to…" style="min-height:55px"></textarea></div></div>
+</div>
+
+<!-- ══ PAGE 6 — MEDIA ══ -->
+<div class="page" id="p6">
+  <div class="info-box">📌 Capture photos and videos of training in progress, centre conditions, youth activities, and partner meetings.</div>
+  <div class="card ca">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--gl);color:var(--g)">📸</div>
+      <div><div class="sec-title">Photos</div><div class="sec-sub">Training, activities, hub conditions, meetings. Images auto-compressed.</div></div>
+    </div>
+    <div class="capture-cluster">
+      <label class="mzone"><input type="file" id="pCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleMediaSelect(this,'mPhoto','prevPhoto')"><div class="mzone-icon">📸</div><p>Take Photo</p><strong>Opens Camera</strong></label>
+      <label class="mzone"><input type="file" id="fPhoto" accept="image/*" multiple style="display:none" onchange="handleMediaSelect(this,'mPhoto','prevPhoto')"><div class="mzone-icon">📁</div><p>Browse Gallery</p><strong>Choose from device</strong></label>
+    </div>
+    <div class="mprev" id="prevPhoto"></div>
+    <div class="field" style="margin-top:12px"><label>Photo caption</label><input type="text" id="photoCaption" class="inp" placeholder="Brief description of what the photos show…"/></div>
+  </div>
+  <div class="card cb">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--bluel);color:var(--blue)">🎬</div>
+      <div><div class="sec-title">Videos</div><div class="sec-sub">Testimonials, training delivery, activities</div></div>
+    </div>
+    <div class="capture-cluster">
+      <label class="mzone"><input type="file" id="vCam" accept="video/*" capture="environment" style="display:none" onchange="handleMediaSelect(this,'mVideo','prevVideo')"><div class="mzone-icon">🎥</div><p>Record Video</p><strong>Opens Camera</strong></label>
+      <label class="mzone"><input type="file" id="fVideo" accept="video/*" multiple style="display:none" onchange="handleMediaSelect(this,'mVideo','prevVideo')"><div class="mzone-icon">📁</div><p>Browse Videos</p><strong>Choose from device</strong></label>
+    </div>
+    <div class="mprev" id="prevVideo"></div>
+    <div class="field" style="margin-top:12px"><label>Video description</label><input type="text" id="videoCaption" class="inp" placeholder="Brief description of video content…"/></div>
+  </div>
+  <div class="card"><div class="field"><label>Media context / overall description</label><textarea id="mediaContext" placeholder="Describe what the photos and videos document…" style="min-height:55px"></textarea></div></div>
+</div>
+
+<!-- ══ PAGE 7 — SAFEGUARDING ══ -->
+<div class="page" id="p7">
+  <div class="warn-box">🛡 <strong>Role 7:</strong> Uphold safeguarding standards at all times. Tick each item upheld during today's visit (optional — tick what applies).</div>
+  <div class="card ct">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--teall);color:var(--teal)">🛡</div>
+      <div><div class="sec-title">Safeguarding Checklist</div><div class="sec-sub">Confirm what was upheld today</div></div>
+    </div>
+    <div id="safeList"></div>
+  </div>
+  <div class="card cr">
+    <div class="sec-hdr">
+      <div class="sec-icon" style="background:var(--redl);color:var(--red)">🚨</div>
+      <div><div class="sec-title">Concern Reporting</div><div class="sec-sub">Complete only if a concern was identified today</div></div>
+    </div>
+    <div class="field"><label>Was a safeguarding concern identified today?</label>
+      <select id="safeConcern" onchange="document.getElementById('safeDetailWrap').style.display=this.value==='yes'?'block':'none'">
+        <option value="no">No — no concerns identified</option>
+        <option value="yes">Yes — concern identified (describe below)</option>
+      </select>
+    </div>
+    <div id="safeDetailWrap" style="display:none">
+      <div class="field"><label>Describe the concern (use initials only — no full names of youth)</label><textarea id="safeTxt" placeholder="Describe what you observed or were told…"></textarea></div>
+      <div class="g2">
+        <div class="field"><label>Action taken</label><input type="text" id="safeAct" class="inp" placeholder="Steps taken immediately"/></div>
+        <div class="field"><label>Reported to</label><input type="text" id="safeRep" class="inp" placeholder="Supervisor / safeguarding lead"/></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="field"><label>Safeguarding notes / observations</label><textarea id="safeNotes" placeholder="Other observations, good practices seen, areas for improvement…" style="min-height:55px"></textarea></div></div>
+</div>
+
+<!-- ══ PAGE 8 — SUBMIT ══ -->
+<div class="page" id="p8">
+  <div class="preview-card">
+    <h3>📋 Report Summary</h3>
+    <div class="prev-grid" id="summaryGrid"></div>
+  </div>
+  <div class="email-banner">📧 This report will be emailed to <strong>yiw@seghana.net</strong> with a copy to <strong>execdir@seghana.net</strong>. All attached files and photos are included as attachments.</div>
+  <div class="card ca">
+    <div class="field"><label>Final notes before submission</label><textarea id="finalNotes" placeholder="Anything else the programme team should know…" style="min-height:55px"></textarea></div>
+    <button type="button" class="btn-draft" onclick="triggerSaveDraft()">💾 Save draft (offline)</button>
+    <button type="button" class="btn-submit" id="submitBtn" onclick="executeReportSubmission()">✉️ Submit Report</button>
+    <div class="proc-wrap" id="procGui">
+      <div class="proc-lbl"><span id="procTxt">Compressing and preparing files…</span><span id="procPerc">0%</span></div>
+      <div class="proc-bar-outer"><div class="proc-bar-inner" id="procBar"></div></div>
+    </div>
+    <p style="font-size:11px;color:var(--t3);text-align:center;margin-top:8px">Saved locally on device + emailed to the YiW team</p>
+  </div>
+  <div class="log-title">📂 Saved & submitted reports</div>
+  <div id="savedRegistry"><p style="font-size:12px;color:var(--t3);text-align:center;padding:10px">No saved reports yet.</p></div>
+</div>
+
+</div><!-- end content-frame -->
+</div><!-- end app-container -->
+
+<!-- BOTTOM NAV (mobile) -->
+<div class="bnav">
+  <div class="bni active" id="bn_p1" onclick="showPage('p1')"><div class="bi">📋</div>Visit</div>
+  <div class="bni" id="bn_p2" onclick="showPage('p2')"><div class="bi">🎓</div>Activate</div>
+  <div class="bni" id="bn_p3" onclick="showPage('p3')"><div class="bi">🏢</div>Quality</div>
+  <div class="bni" id="bn_p4" onclick="showPage('p4')"><div class="bi">🤝</div>Partners</div>
+  <div class="bni" id="bn_p5" onclick="showPage('p5')"><div class="bi">📎</div>Docs</div>
+  <div class="bni" id="bn_p6" onclick="showPage('p6')"><div class="bi">📸</div>Media</div>
+  <div class="bni" id="bn_p7" onclick="showPage('p7')"><div class="bi">🛡</div>Safe</div>
+  <div class="bni" id="bn_p8" onclick="showPage('p8')"><div class="bi">✉️</div>Submit</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── CONFIG — your Google Apps Script URL ──
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwW4WmAQ7WjLhqI-UypvnQt9Qcd9qoXMV24fZJn9xA8kPnUEzfIGnTxYepCBDC8BfVn-A/exec";
+
+// ── DATA DEFINITIONS ──
+const ATT_ITEMS=[
+  {id:'cMale',lbl:'Young men present'},
+  {id:'cFemale',lbl:'Young women present'},
+  {id:'cPWD',lbl:'Persons with disability'},
+  {id:'cStaff',lbl:'Hub staff on duty'},
+  {id:'cTrainer',lbl:'Trainers / facilitators present'}
+];
+const ACT_ITEMS=[
+  {id:'aJobs',lbl:'Placed in formal employment'},
+  {id:'aIntern',lbl:'Placed in internships'},
+  {id:'aCoop',lbl:'Joined cooperatives / self-employment'},
+  {id:'aRef',lbl:'Referred for further training'}
+];
+const QUALITY_ITEMS=['Training ongoing as scheduled','Trainers present and prepared','Participants engaged and attentive','Course content displayed / visible','Training materials available','IDs / registration checked','Attendance sheet in use','Hub clean and safe'];
+const ISSUE_ITEMS=['No trainer present','Training not following curriculum','Attendance not being recorded','Low youth attendance (<50%)','Equipment failure / unavailable','Safety hazard identified','Participant misconduct','Staff demanding payment from youth','Financial irregularity noted','Hub premises unsafe'];
+const FACILITY_ITEMS=['Internet / Wi-Fi','Computers / tablets','Projector / display','Power / electricity','Clean water','Sanitation / toilets','Training room available','Notice board updated','First aid kit','Fire safety equipment'];
+const ACTIVITY_ITEMS=['Technical skills training','Entrepreneurship session','CV & job readiness','Mentorship / coaching','Employer talk / industry visit','Group work / project','Assessment / exam','Sports / wellness'];
+const SAFE_ITEMS=[
+  {id:'sg1',lbl:'Consent obtained before photos/videos',sub:'Youth gave verbal or written consent'},
+  {id:'sg2',lbl:'No youth left alone with staff unsupervised',sub:'Two-adult rule maintained'},
+  {id:'sg3',lbl:'Safeguarding policy visible at hub',sub:'Displayed on notice board'},
+  {id:'sg4',lbl:'No discriminatory language or behaviour',sub:'Inclusive environment maintained'},
+  {id:'sg5',lbl:'Reporting mechanism communicated to youth',sub:'Youth know how to raise concerns'},
+  {id:'sg6',lbl:'YiW ID / badge worn during visit',sub:'Identification clearly displayed'},
+  {id:'sg7',lbl:'No exchange of personal contacts with youth',sub:'Professional boundaries maintained'},
+  {id:'sg8',lbl:'Gifts / incentives followed programme guidelines',sub:'No unauthorised payments or gifts'}
+];
+
+let MS={dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]};
+let db=null;
+let ratingVal=0;
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',async()=>{
+  buildCounters('attendanceWrap',ATT_ITEMS);
+  buildCounters('activationWrap',ACT_ITEMS);
+  buildCheckGrid('qualityGrid',QUALITY_ITEMS,'q',false);
+  buildFlagGrid('issuesGrid',ISSUE_ITEMS,'i');
+  buildCheckGrid('facilitiesGrid',FACILITY_ITEMS,'f',false);
+  buildCheckGrid('activitiesGrid',ACTIVITY_ITEMS,'a',false);
+  buildSafeList();
+  buildRatingStars();
+  for(let i=0;i<2;i++) addPartnerRow();
+  document.getElementById('visitDate').value=new Date().toISOString().split('T')[0];
+  try{await initDB();renderSavedRegistry();}catch(e){showToast('Local storage unavailable: '+e,'warn');}
+  window.addEventListener('online',onNetChange);
+  window.addEventListener('offline',onNetChange);
+  onNetChange();
+});
+
+// ── UI BUILDERS ──
+function buildCounters(wrapId,items){
+  const el=document.getElementById(wrapId);
+  items.forEach(item=>{
+    el.innerHTML+=`<div class="ctr-row">
+      <div class="ctr-lbl">${item.lbl}</div>
+      <div class="ctr-ctrl">
+        <button class="ctr-btn" type="button" onclick="adjCtr('${item.id}',-1)">−</button>
+        <input type="number" class="ctr-inp" id="v_${item.id}" value="0" min="0"/>
+        <button class="ctr-btn" type="button" onclick="adjCtr('${item.id}',1)">+</button>
+      </div></div>`;
+  });
+}
+function adjCtr(id,d){const el=document.getElementById('v_'+id);el.value=Math.max(0,(parseInt(el.value)||0)+d);}
+
+function buildCheckGrid(id,items,prefix,flag){
+  const el=document.getElementById(id);
+  items.forEach((text,i)=>{
+    const gid=`${prefix}_${i}`;
+    el.innerHTML+=`<label class="chk-item" id="lbl_${gid}">
+      <input type="checkbox" id="${gid}" onchange="document.getElementById('lbl_${gid}').classList.toggle('on',this.checked)"/>
+      <div class="cbox"></div><span>${text}</span></label>`;
+  });
+}
+function buildFlagGrid(id,items,prefix){
+  const el=document.getElementById(id);
+  el.className=''; // full width
+  items.forEach((text,i)=>{
+    const gid=`${prefix}_${i}`;
+    el.innerHTML+=`<label class="chk-item" id="lbl_${gid}" style="margin-bottom:6px">
+      <input type="checkbox" id="${gid}" onchange="document.getElementById('lbl_${gid}').classList.toggle('flagged',this.checked)"/>
+      <div class="cbox"></div><span>${text}</span></label>`;
+  });
+}
+function buildRatingStars(){
+  const rr=document.getElementById('ratingStars');
+  ['1 — Poor','2 — Weak','3 — Fair','4 — Good','5 — Excellent'].forEach((l,i)=>{
+    const v=i+1;
+    rr.innerHTML+=`<button class="star-btn" type="button" data-v="${v}" onclick="setRating(${v},this)">${l}</button>`;
+  });
+}
+function setRating(v,btn){
+  ratingVal=v;
+  document.querySelectorAll('.star-btn').forEach(b=>{b.className='star-btn';if(parseInt(b.dataset.v)===v)b.classList.add('r'+v);});
+}
+function buildSafeList(){
+  const el=document.getElementById('safeList');
+  SAFE_ITEMS.forEach(s=>{
+    el.innerHTML+=`<div class="safe-item" id="ls${s.id}" onclick="toggleSafe('${s.id}')">
+      <div class="safe-chk" id="sc${s.id}"></div>
+      <div class="safe-txt"><strong>${s.lbl}</strong><span>${s.sub}</span></div>
+      <input type="checkbox" id="${s.id}" style="display:none"/>
+    </div>`;
+  });
+}
+function toggleSafe(id){
+  const cb=document.getElementById(id);cb.checked=!cb.checked;
+  document.getElementById('ls'+id).classList.toggle('confirmed',cb.checked);
+}
+
+// ── PARTNER TABLE ──
+function addPartnerRow(){
+  const tb=document.getElementById('ptbody');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input type="text" class="pinp" placeholder="Company name"/></td>
+    <td><input type="text" class="pinp" placeholder="City / town"/></td>
+    <td><select class="psel"><option value="">Sector…</option><option>Agriculture / Agritech</option><option>Technology / ICT</option><option>Construction / Trades</option><option>Manufacturing</option><option>Financial services</option><option>Health / Care</option><option>Hospitality / Services</option><option>Renewable Energy</option><option>Education</option><option>Other</option></select></td>
+    <td><textarea class="ptxt" placeholder="Brief business description…"></textarea></td>
+    <td><textarea class="ptxt" placeholder="Skills they want trained…"></textarea></td>
+    <td><input type="text" class="pinp" placeholder="Contact name"/></td>
+    <td><input type="tel" class="pinp" placeholder="+233…"/></td>
+    <td><select class="psel"><option value="Prospective">Prospective</option><option value="Meeting held">Meeting held</option><option value="Verified">Verified</option><option value="Contract ready">Contract ready</option><option value="Signed">Signed</option></select></td>
+    <td><input type="number" class="pinp" value="0" min="0" style="width:55px"/></td>
+    <td><button type="button" class="btn-del-row" onclick="this.closest('tr').remove();updatePCount()">✕</button></td>`;
+  tr.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('input',updatePCount));
+  tb.appendChild(tr);
+  updatePCount();
+}
+function updatePCount(){
+  const rows=document.querySelectorAll('#ptbody tr');
+  let c=0;rows.forEach(r=>{if(r.cells[0].querySelector('input').value.trim())c++;});
+  document.getElementById('pcount').textContent=c;
+  document.getElementById('pbar').style.width=Math.min(100,Math.round(c/15*100))+'%';
+}
+
+// ── IMAGE COMPRESSION (from your friend's code — kept as-is, it's excellent) ──
+function compressImage(file){
+  return new Promise(resolve=>{
+    if(!file.type.startsWith('image/')){resolve(file);return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        let w=img.width,h=img.height;
+        const MAX=2200;
+        if(w>h&&w>MAX){h*=MAX/w;w=MAX;}
+        else if(h>=w&&h>MAX){w*=MAX/h;h=MAX;}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>{
+          resolve(new File([blob],file.name.replace(/\.[^/.]+$/,'')+'.jpg',{type:'image/jpeg'}));
+        },'image/jpeg',0.78);
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── FILE HANDLERS ──
+async function handleFileSelect(input,setKey,listId){
+  const container=document.getElementById(listId);
+  for(const file of Array.from(input.files)){
+    const badge=document.createElement('div');badge.className='file-badge';
+    badge.innerHTML=`<span>⏳ Compressing ${file.name}…</span>`;
+    container.appendChild(badge);
+    const opt=await compressImage(file);
+    MS[setKey].push(opt);
+    badge.innerHTML=`<span>📎 ${opt.name} (${(opt.size/1024).toFixed(1)} KB)</span>`;
+    const del=document.createElement('button');del.textContent='✕';del.type='button';
+    del.onclick=()=>{MS[setKey]=MS[setKey].filter(f=>f!==opt);badge.remove();};
+    badge.appendChild(del);
+  }
+  input.value='';
+}
+async function handleMediaSelect(input,setKey,prevId){
+  const container=document.getElementById(prevId);
+  for(const file of Array.from(input.files)){
+    const thumb=document.createElement('div');thumb.className='mthumb';
+    thumb.innerHTML='<span style="padding:4px;font-size:10px">⏳</span>';
+    container.appendChild(thumb);
+    const opt=await compressImage(file);
+    MS[setKey].push(opt);
+    if(opt.type.startsWith('image/')){
+      thumb.innerHTML=`<img src="${URL.createObjectURL(opt)}" alt=""/>`;
+    } else {
+      thumb.innerHTML=`<div class="vlbl">🎥 ${opt.name.substring(0,10)}…</div>`;
+    }
+    const del=document.createElement('button');del.className='mthumb-del';del.textContent='✕';del.type='button';
+    del.onclick=()=>{MS[setKey]=MS[setKey].filter(f=>f!==opt);thumb.remove();};
+    thumb.appendChild(del);
+  }
+  input.value='';
+}
+
+// ── COLLECT FORM DATA ──
+function getChecked(containerId){
+  return Array.from(document.getElementById(containerId).querySelectorAll('input[type="checkbox"]:checked'))
+    .map(el=>el.closest('label, .chk-item').querySelector('span')?.textContent||'');
+}
+function gv(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+
+function compileFormData(){
+  const partners=[];
+  document.querySelectorAll('#ptbody tr').forEach(row=>{
+    const c=row.querySelectorAll('input,select,textarea');
+    if(c[0]&&c[0].value.trim()) partners.push({
+      name:c[0].value.trim(),location:c[1].value.trim(),sector:c[2].value,
+      profile:c[3].value.trim(),skillsNeeded:c[4].value.trim(),
+      contact:c[5].value.trim(),phone:c[6].value.trim(),
+      status:c[7].value,slots:parseInt(c[8].value)||0
     });
+  });
+  const safeChecked=SAFE_ITEMS.filter(s=>document.getElementById(s.id)&&document.getElementById(s.id).checked).map(s=>s.lbl);
+  return{
+    fpName:gv('fpName'),fpPhone:gv('fpPhone'),fpEmail:gv('fpEmail'),fpZone:gv('fpZone'),
+    visitDate:gv('visitDate'),visitType:gv('visitType'),
+    hubName:gv('hubName')==='Other — specify below'?gv('hubOther'):gv('hubName'),
+    community:gv('community'),trainingCentre:gv('trainingCentre'),centreAddress:gv('centreAddress'),
+    hubContact:gv('hubContact'),hubContactPhone:gv('hubContactPhone'),
+    tArr:gv('tArr'),tDep:gv('tDep'),
+    cMale:parseInt(document.getElementById('v_cMale').value)||0,
+    cFemale:parseInt(document.getElementById('v_cFemale').value)||0,
+    cPWD:parseInt(document.getElementById('v_cPWD').value)||0,
+    cStaff:parseInt(document.getElementById('v_cStaff').value)||0,
+    cTrainer:parseInt(document.getElementById('v_cTrainer').value)||0,
+    aJobs:parseInt(document.getElementById('v_aJobs').value)||0,
+    aIntern:parseInt(document.getElementById('v_aIntern').value)||0,
+    aCoop:parseInt(document.getElementById('v_aCoop').value)||0,
+    aRef:parseInt(document.getElementById('v_aRef').value)||0,
+    youthNames:gv('youthNames'),empName:gv('empName'),empSector:gv('empSector'),
+    enrolM:gv('enrolM'),enrolF:gv('enrolF'),enrolCourse:gv('enrolCourse'),
+    highlight:gv('highlight'),yVoice:gv('yVoice'),
+    rating:ratingVal,
+    quality:getChecked('qualityGrid'),issues:getChecked('issuesGrid'),
+    facilities:getChecked('facilitiesGrid'),activities:getChecked('activitiesGrid'),
+    challenges:gv('challenges'),recommendations:gv('recommendations'),
+    urgency:gv('urgency'),followUpBy:gv('followUpBy'),
+    partners,partnerNotes:gv('partnerNotes'),nextPDate:gv('nextPDate'),
+    docNotes:gv('docNotes'),
+    photoCaption:gv('photoCaption'),videoCaption:gv('videoCaption'),mediaContext:gv('mediaContext'),
+    safeChecked,safeConcern:gv('safeConcern'),safeTxt:gv('safeTxt'),
+    safeAct:gv('safeAct'),safeRep:gv('safeRep'),safeNotes:gv('safeNotes'),
+    finalNotes:gv('finalNotes'),
+    fileCounts:{dAtt:MS.dAtt.length,dFin:MS.dFin.length,dMou:MS.dMou.length,dTrack:MS.dTrack.length,mPhoto:MS.mPhoto.length,mVideo:MS.mVideo.length}
+  };
+}
 
-    // Simple Numeric Increment Counter Controllers
-    function adjustCount(elementId, amount) {
-      const el = document.getElementById(elementId);
-      let val = parseInt(el.value) || 0;
-      val += amount;
-      if(val < 0) val = 0;
-      el.value = val;
+// ── INDEXEDDB ──
+function initDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('YiWReports_v4',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('reports',{keyPath:'id'});
+    r.onsuccess=e=>{db=e.target.result;res();};r.onerror=()=>rej('DB error');
+  });
+}
+function dbWrite(rec){return new Promise((res,rej)=>{const tx=db.transaction('reports','readwrite');tx.objectStore('reports').put(rec);tx.oncomplete=res;tx.onerror=rej;});}
+function dbGetAll(){return new Promise((res,rej)=>{const tx=db.transaction('reports','readonly');const req=tx.objectStore('reports').getAll();req.onsuccess=e=>res(e.target.result);req.onerror=rej;});}
+
+// ── BASE64 FILE PACKER (from your friend's code — kept as-is) ──
+function fileToBase64(f){
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+}
+async function packFiles(){
+  let pkg={dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]};
+  const gui=document.getElementById('procGui');
+  const bar=document.getElementById('procBar');
+  const perc=document.getElementById('procPerc');
+  const txt=document.getElementById('procTxt');
+  let total=0,done=0;
+  for(const k in MS) total+=MS[k].length;
+  if(total>0){gui.style.display='block';txt.textContent='Compressing and preparing files…';}
+  for(const k in MS){
+    for(const f of MS[k]){
+      try{
+        const b64=await fileToBase64(f);
+        pkg[k].push({name:f.name,type:f.type,base64:b64});
+        done++;bar.style.width=Math.round(done/total*100)+'%';
+        perc.textContent=Math.round(done/total*100)+'%';
+      }catch(e){console.error('Pack error:',f.name,e);}
     }
+  }
+  gui.style.display='none';
+  return pkg;
+}
 
-    // Media Object Interception & Base64 Conversion Pipeline
-    function handleFileSelection() {
-      const input = document.getElementById('fileUpload');
-      const list = document.getElementById('fileList');
-      list.innerHTML = "";
-      selectedFilesCache = [];
+// ── SAVE DRAFT ──
+async function triggerSaveDraft(){
+  const d=compileFormData();
+  if(!d.fpName||!d.trainingCentre){showToast('⚠ Enter focal person name and training centre first','warn');return;}
+  await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',formData:d});
+  showToast('💾 Draft saved to device','success');
+  renderSavedRegistry();
+}
 
-      Array.from(input.files).forEach(file => {
-        const item = document.createElement('li');
-        item.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-        list.appendChild(item);
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          selectedFilesCache.push({
-            name: file.name,
-            mimeType: file.type,
-            base64Data: e.target.result.split(',')[1]
-          });
-        };
-        reader.readAsDataURL(file);
-      });
+// ── SUBMIT ──
+async function executeReportSubmission(){
+  const d=compileFormData();
+  if(!d.fpName||!d.fpPhone||!d.community||!d.trainingCentre){
+    showToast('⚠ Please complete all required fields on Page 1','warn');showPage('p1');return;
+  }
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.textContent='Preparing and sending…';
+  const files=await packFiles();
+  const envelope={id:Date.now(),formData:d,files};
+  if(!navigator.onLine){
+    await dbWrite({id:envelope.id,ts:new Date().toLocaleString(),status:'pending',formData:d,filesCache:files});
+    showToast('📡 Offline — saved and will send when connected','warn');
+    resetAfterSubmit();return;
+  }
+  try{
+    const res=await fetch(SCRIPT_URL,{method:'POST',mode:'cors',body:JSON.stringify(envelope)});
+    const json=await res.json();
+    if(json.status==='success'){
+      showToast('✅ Report submitted successfully!','success');
+      await dbWrite({id:envelope.id,ts:new Date().toLocaleString(),status:'sent',formData:d});
+    } else {
+      throw new Error(json.message||'Server error');
     }
+  }catch(e){
+    console.error(e);
+    showToast('⚠ Send failed — saved offline, will retry','warn');
+    await dbWrite({id:envelope.id,ts:new Date().toLocaleString(),status:'pending',formData:d,filesCache:files});
+  }
+  resetAfterSubmit();
+}
 
-    // Core Database Initialization Engine
-    function initIndexedDatabase() {
-      const req = indexedDB.open("YiWFieldReportDB", 1);
-      req.onupgradeneeded = function(e) {
-        db = e.target.result;
-        if (!db.objectStoreNames.contains("reports")) {
-          db.createObjectStore("reports", { keyPath: "id", autoIncrement: true });
-        }
-      };
-      req.onsuccess = function(e) {
-        db = e.target.result;
-        renderSavedRegistry();
-        triggerBackgroundSyncPipeline();
-      };
-      req.onerror = function(e) { console.error("Database Engine Fault:", e); };
-    }
+function resetAfterSubmit(){
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=false;btn.textContent='✉️ Submit Report';
+  MS={dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]};
+  document.querySelectorAll('.file-list,.mprev').forEach(el=>el.innerHTML='');
+  renderSavedRegistry();
+}
 
-    function writeToDatabase(record) {
-      return new Promise((resolve) => {
-        const tx = db.transaction("reports", "readwrite");
-        const store = tx.objectStore("reports");
-        store.put(record);
-        tx.oncomplete = () => resolve();
-      });
-    }
-
-    function fetchDatabaseRecords() {
-      return new Promise((resolve) => {
-        const tx = db.transaction("reports", "readonly");
-        const store = tx.objectStore("reports");
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result || []);
-      });
-    }
-
-    // Interactive Lifecycle Synchronization Handlers
-    function setupNetworkListeners() {
-      const updateNetworkDisplay = () => {
-        const banner = document.getElementById('status-banner');
-        if(navigator.onLine) {
-          banner.textContent = "Online — Connected to Server";
-          banner.className = "online-mode";
-          triggerBackgroundSyncPipeline();
-        } else {
-          banner.textContent = "Offline Mode — Reports Will Cache Safely";
-          banner.className = "offline-mode";
-        }
-      };
-      window.addEventListener('online', updateNetworkDisplay);
-      window.addEventListener('offline', updateNetworkDisplay);
-      updateNetworkDisplay();
-    }
-
-    // Submission Handler Block
-    document.getElementById('reportForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const reportPayload = {
-        timestamp: new Date().toLocaleString(),
-        status: 'pending',
-        formData: {
-          focalPerson: document.getElementById('focalPerson').value,
-          visitDate: document.getElementById('visitDate').value,
-          hubName: document.getElementById('hubName').value,
-          visitType: document.getElementById('visitType').value,
-          maleCount: document.getElementById('maleCount').value,
-          femaleCount: document.getElementById('femaleCount').value,
-          activities: document.getElementById('activities').value,
-          challenges: document.getElementById('challenges').value,
-          recommendations: document.getElementById('recommendations').value
-        },
-        filesCache: selectedFilesCache
-      };
-
-      await writeToDatabase(reportPayload);
-      showToast("Report cached safely on your device!");
-      
-      // Clear Form Fields
-      document.getElementById('reportForm').reset();
-      document.getElementById('fileList').innerHTML = "";
-      selectedFilesCache = [];
-      document.getElementById('maleCount').value = "0";
-      document.getElementById('femaleCount').value = "0";
-
-      renderSavedRegistry();
-      triggerBackgroundSyncPipeline();
-    });
-
-    // Cloud Transmission Core Function Engine
-    async function triggerBackgroundSyncPipeline() {
-      if(!navigator.onLine || !db) return;
-      const records = await fetchDatabaseRecords();
-      const pendings = records.filter(x => x.status === 'pending');
-
-      for(let rec of pendings) {
-        try {
-          const res = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Bypasses CORS limitations for standard target setups
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(rec)
-          });
-          
-          // Since no-cors handles opaque contexts, flag clean entries as complete
-          rec.status = 'sent';
-          delete rec.filesCache; // Strip base64 overhead memory usage post-upload
-          await writeToDatabase(rec);
-          showToast(`Report for "${rec.formData.hubName}" synced successfully!`);
-        } catch(err) {
-          console.error("Transmission fault execution sequence pipeline interrupt:", rec.id, err);
-        }
+async function attemptBackgroundSync(){
+  if(!db||!navigator.onLine)return;
+  const all=await dbGetAll();
+  const pending=all.filter(r=>r.status==='pending');
+  if(!pending.length)return;
+  showToast(`🔄 Syncing ${pending.length} pending report(s)…`);
+  for(const rec of pending){
+    try{
+      const files=rec.filesCache||{dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]};
+      const res=await fetch(SCRIPT_URL,{method:'POST',mode:'cors',body:JSON.stringify({id:rec.id,formData:rec.formData,files})});
+      const json=await res.json();
+      if(json.status==='success'){
+        rec.status='sent';delete rec.filesCache;delete rec.rawFiles;
+        await dbWrite(rec);
       }
-      renderSavedRegistry();
-    }
+    }catch(e){console.error('Sync error:',rec.id,e);}
+  }
+  renderSavedRegistry();
+}
 
-    function renderSavedRegistry() {
-      const container = document.getElementById('savedRegistry');
-      if(!db) return;
-      
-      fetchDatabaseRecords().then(items => {
-        if(items.length === 0) {
-          container.innerHTML = `<p style="font-size:12px; color:var(--t3); text-align:center; padding:10px;">No cached field reports located.</p>`;
-          return;
-        }
-        items.sort((x, y) => y.id - x.id);
-        container.innerHTML = "";
-        items.forEach(item => {
-          container.innerHTML += `
-            <div class="report-item">
-              <div>
-                <strong>${item.formData.hubName || 'Unknown Hub'}</strong><br>
-                <span style="font-size:10px; color:var(--t3);">${item.timestamp}</span>
-              </div>
-              <span class="status-pill ${item.status}">${item.status === 'sent' ? 'Sent' : 'Pending Sync'}</span>
-            </div>`;
-        });
-      });
-    }
+// ── SAVED LIST ──
+async function renderSavedRegistry(){
+  const el=document.getElementById('savedRegistry');
+  if(!db){el.innerHTML='<p style="font-size:12px;color:var(--t3);text-align:center;padding:10px">Local storage unavailable.</p>';return;}
+  const items=await dbGetAll();
+  if(!items.length){el.innerHTML='<p style="font-size:12px;color:var(--t3);text-align:center;padding:10px">No saved reports yet.</p>';return;}
+  items.sort((a,b)=>b.id-a.id);
+  el.innerHTML=items.map(r=>`
+    <div class="log-item">
+      <div>
+        <strong style="font-size:13px">${r.formData.trainingCentre||'Unnamed centre'} — ${r.formData.fpName||'—'}</strong><br/>
+        <span style="font-size:10px;color:var(--t3)">${r.ts} · ${r.formData.fpZone||'—'}</span>
+      </div>
+      <span class="spill ${r.status}">${r.status}</span>
+    </div>`).join('');
+}
 
-    function showToast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg; 
-      el.style.display = 'block';
-      setTimeout(() => { el.style.display = 'none'; }, 3500);
-    }
-  </script>
+// ── SUMMARY (Page 8) ──
+function buildSummary(){
+  const d=compileFormData();
+  const totalAtt=(d.cMale+d.cFemale+d.cPWD+d.cStaff+d.cTrainer);
+  const totalAct=(d.aJobs+d.aIntern+d.aCoop+d.aRef);
+  const totalFiles=Object.values(d.fileCounts).reduce((a,b)=>a+b,0);
+  const items=[
+    ['Focal person',d.fpName||'—'],['Zone',d.fpZone||'—'],
+    ['Visit date',d.visitDate||'—'],['Hub / TSP',d.hubName||'—'],
+    ['Community',d.community||'—'],['Training centre',d.trainingCentre||'—'],
+    ['Visit type',d.visitType||'—'],['Youth present',totalAtt],
+    ['Activations total',totalAct],['Partners engaged',document.querySelectorAll('#ptbody tr').length],
+    ['Hub rating',d.rating?d.rating+'/5':'—'],['Issues flagged',d.issues.length||'None'],
+    ['Files attached',totalFiles],['Safeguarding confirmed',d.safeChecked.length+' of 8']
+  ];
+  document.getElementById('summaryGrid').innerHTML=items.map(([l,v])=>`
+    <div class="prev-item"><div class="pi-lbl">${l}</div><div class="pi-val">${v}</div></div>`).join('');
+}
+
+// ── NAVIGATION ──
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab,.bni,.side-item').forEach(el=>el.classList.remove('active'));
+  const t=document.querySelector(`.tab[data-page="${id}"]`);if(t)t.classList.add('active');
+  const b=document.getElementById('bn_'+id);if(b)b.classList.add('active');
+  const s=document.querySelector(`.side-item[data-page="${id}"]`);if(s)s.classList.add('active');
+  if(id==='p8')buildSummary();
+  window.scrollTo({top:0,behavior:'auto'});
+}
+
+// ── NETWORK ──
+function onNetChange(){
+  const on=navigator.onLine;
+  document.getElementById('netDot').className='ndot '+(on?'on':'off');
+  document.getElementById('netText').textContent=on?'Online':'Offline';
+  if(on)attemptBackgroundSync();
+}
+
+// ── TOAST ──
+function showToast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=type==='warn'?'#7b3100':'#1a3a1a';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),4500);
+}
+</script>
 </body>
 </html>
