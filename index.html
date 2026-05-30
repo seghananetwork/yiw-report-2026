@@ -178,14 +178,14 @@
     </div>
 
     <div class="tabs" id="tabStrip">
-      <div class="tab active" onclick="showPage('p1')">📋 Visit</div>
-      <div class="tab" onclick="showPage('p2')">🎓 Activate</div>
-      <div class="tab" onclick="showPage('p3')">🏢 Quality</div>
-      <div class="tab" onclick="showPage('p4')">🤝 Partners</div>
-      <div class="tab" onclick="showPage('p5')">📎 Docs</div>
-      <div class="tab" onclick="showPage('p6')">📸 Media</div>
-      <div class="tab" onclick="showPage('p7')">🛡 Safety</div>
-      <div class="tab" onclick="showPage('p8')">✉️ Send</div>
+      <div class="tab active" data-page="p1" onclick="showPage('p1')">📋 Visit</div>
+      <div class="tab" data-page="p2" onclick="showPage('p2')">🎓 Activate</div>
+      <div class="tab" data-page="p3" onclick="showPage('p3')">🏢 Quality</div>
+      <div class="tab" data-page="p4" onclick="showPage('p4')">🤝 Partners</div>
+      <div class="tab" data-page="p5" onclick="showPage('p5')">📎 Docs</div>
+      <div class="tab" data-page="p6" onclick="showPage('p6')">📸 Media</div>
+      <div class="tab" data-page="p7" onclick="showPage('p7')">🛡 Safety</div>
+      <div class="tab" data-page="p8" onclick="showPage('p8')">✉️ Send</div>
     </div>
 
     <div class="content-frame">
@@ -724,7 +724,7 @@
         <td><textarea class="p-textarea" placeholder="Profile metrics..."></textarea></td>
         <td><textarea class="p-textarea" placeholder="Specific domains..."></textarea></td>
         <td><input type="text" class="p-input" placeholder="Contact Fullname"></td>
-        <td><input type="tel" class="p-input" placeholder="Phone Link"></td>
+        <td><input type="tel" class="p-input" placeholder="Phone Line"></td>
         <td>
           <select class="p-select">
             <option value="Prospective Lead">Prospective</option>
@@ -743,24 +743,27 @@
 
     // Adaptive View Routing Controller
     function showPage(id) {
+      const targetPage = document.getElementById(id);
+      if(!targetPage) return;
+
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
+      targetPage.classList.add('active');
       
       document.querySelectorAll('.tab, .bni, .side-item').forEach(el => el.classList.remove('active'));
       
-      // Sync Mobile layout strips
-      const activeTab = Array.from(document.querySelectorAll('.tab')).find(t => t.outerHTML.includes(`'${id}'`));
+      // Sync Mobile layout strips via data attributes instead of flakey HTML layout text checks
+      const activeTab = document.querySelector(`.tab[data-page="${id}"]`);
       if(activeTab) activeTab.classList.add('active');
       
       const activeBni = document.getElementById('bn_' + id);
       if(activeBni) activeBni.classList.add('active');
 
       // Sync Desktop Sidebar tree layout parameters
-      const activeSide = Array.from(document.querySelectorAll('.side-item')).find(s => s.getAttribute('data-page') === id);
+      const activeSide = document.querySelector(`.side-item[data-page="${id}"]`);
       if(activeSide) activeSide.classList.add('active');
 
-      // Global window view scroll resetting logic adjustments
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      // Universal cross-browser layout alignment (Safe standard replacing 'instant')
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
 
     // High-Readability Client-Side Smart Document Compressor Engine
