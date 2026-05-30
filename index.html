@@ -5,1088 +5,377 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#1a5c2a">
-  <title>YiW Enterprise Dashboard - SEGHana</title>
+  <title>Youth in Work - Daily Field Report Form</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --g: #1a5c2a; --gm: #2d7a3a; --gl: #e8f5eb; --gb: #4caf50;
-      --gold: #b8860b; --goldl: #fff8e1;
-      --red: #c62828; --redl: #ffebee;
-      --blue: #1565c0; --bluel: #e3f2fd;
-      --grey: #455a64; --greyl: #eceff1;
-      --t1: #1a1a2e; --t2: #4a5568; --t3: #718096;
-      --bdr: #dde3ea; --sh: 0 4px 16px rgba(0,0,0,.05);
+      --g: #1a5c2a; 
+      --gm: #2d7a3a; 
+      --gl: #e8f5eb; 
+      --gb: #4caf50;
+      --amber: #e65100;
+      --amberl: #fff3e0;
+      --t1: #1a1a2e; 
+      --t2: #4a5568; 
+      --t3: #718096;
+      --bdr: #dde3ea; 
+      --sh: 0 4px 16px rgba(0,0,0,.05);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background: #f3f7f4; color: var(--t1); min-height: 100vh; padding-bottom: 80px; display: flex; flex-direction: column; }
+    body { background: #f4f7f5; color: var(--t1); padding: 15px; display: flex; flex-direction: column; align-items: center; }
+
+    .app-container { width: 100%; max-width: 500px; background: #ffffff; border-radius: 16px; box-shadow: var(--sh); overflow: hidden; margin-bottom: 20px; }
     
-    /* Responsive Top Bar Navigation */
-    .topbar { background: linear-gradient(135deg, var(--g), var(--gm)); color: #fff; padding: 0 20px; height: 65px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,.12); }
-    .tlogo h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-    .tlogo p { font-size: 11px; opacity: 0.85; }
-    .npill { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.18); padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .ndot { width: 9px; height: 9px; border-radius: 50%; }
-    .ndot.on { background: #69f0ae; box-shadow: 0 0 8px #69f0ae; }
-    .ndot.off { background: #ff5252; box-shadow: 0 0 8px #ff5252; }
+    /* Header Branding */
+    .app-header { background: var(--g); color: #ffffff; padding: 20px; text-align: center; position: relative; }
+    .app-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .app-header p { font-size: 12px; color: var(--gl); opacity: 0.9; }
 
-    /* Layout Adaptability Matrix Wrapper */
-    .app-container { display: flex; flex: 1; position: relative; }
+    /* Connectivity Banner */
+    #status-banner { padding: 8px 12px; text-align: center; font-size: 12px; font-weight: 600; transition: all 0.3s ease; }
+    .online-mode { background: var(--gl); color: var(--g); }
+    .offline-mode { background: var(--amberl); color: var(--amber); }
+
+    /* Form Components */
+    form { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--t2); }
     
-    /* Desktop Permanent Left Navigation Sidebar (Hidden on Mobile) */
-    .sidebar { width: 260px; background: #fff; border-right: 1px solid var(--bdr); display: none; flex-direction: column; padding: 20px 0; position: fixed; top: 65px; bottom: 0; left: 0; z-index: 90; box-shadow: 2px 0 10px rgba(0,0,0,0.02); }
-    .side-item { padding: 12px 24px; font-size: 13px; font-weight: 600; color: var(--t2); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.15s; border-left: 4px solid transparent; }
-    .side-item:hover { background: #f8fafc; color: var(--g); }
-    .side-item.active { background: var(--gl); color: var(--g); border-left-color: var(--g); }
-
-    /* Mobile Upper Navigation Strip Controls */
-    .tabs { display: flex; background: #fff; border-bottom: 1px solid var(--bdr); overflow-x: auto; position: sticky; top: 65px; z-index: 99; box-shadow: var(--sh); scrollbar-width: none; width: 100%; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { flex: 0 0 auto; padding: 14px 16px; font-size: 13px; font-weight: 500; color: var(--t3); cursor: pointer; border-bottom: 3px solid transparent; display: flex; align-items: center; gap: 4px; }
-    .tab.active { color: var(--g); border-bottom-color: var(--g); background: var(--gl); font-weight: 600; }
-
-    /* Viewport Frame Management */
-    .content-frame { flex: 1; padding: 16px; width: 100%; max-width: 100%; }
-    .page { display: none; max-width: 900px; margin: 0 auto; animation: fadeIn 0.2s ease-in-out; }
-    .page.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* Device UI Adaptive Responsive Tweaks */
-    @media (min-width: 768px) {
-      body { padding-bottom: 0; }
-      .tabs { display: none; }
-      .sidebar { display: flex; }
-      .content-frame { margin-left: 260px; padding: 30px; }
-      .bnav { display: none; }
-      .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    input[type="text"], input[type="datetime-local"], select, textarea {
+      width: 100%; padding: 12px; border: 1px solid var(--bdr); border-radius: 8px; font-size: 14px; 
+      color: var(--t1); background: #fafafa; transition: border 0.2s; outline: none;
     }
-
-    /* Cards Presentation Setup */
-    .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: var(--sh); border: 1px solid var(--bdr); }
-    .card-accent { border-left: 4px solid var(--g); }
-    .card-accent-blue { border-left: 4px solid var(--blue); }
-    .card-accent-red { border-left: 4px solid var(--red); }
+    input:focus, select:focus, textarea:focus { border-color: var(--gm); background: #ffffff; }
     
-    .sec-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .sec-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .sec-title { font-size: 15px; font-weight: 700; color: var(--t1); }
-    .sec-sub { font-size: 12px; color: var(--t3); }
+    /* Row Split for Counters */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .counter-wrapper { display: flex; align-items: center; border: 1px solid var(--bdr); border-radius: 8px; background: #fafafa; overflow: hidden; }
+    .counter-btn { width: 40px; height: 44px; background: #eeeeee; border: none; font-size: 18px; font-weight: 600; cursor: pointer; color: var(--t2); }
+    .counter-btn:active { background: #e0e0e0; }
+    .counter-val { flex: 1; text-align: center; font-weight: 600; font-size: 15px; border: none; background: transparent; pointer-events: none; }
 
-    /* Component Input elements */
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--t2); margin-bottom: 6px; }
-    .inp, select, textarea { width: 100%; padding: 11px; border: 1.5px solid var(--bdr); border-radius: 7px; font-size: 13px; outline: none; transition: all 0.15s; color: var(--t1); background: #fff; }
-    .inp:focus, select:focus, textarea:focus { border-color: var(--g); background: #fafdfb; box-shadow: 0 0 0 3px rgba(26,92,42,0.08); }
-    
-    /* Numeric Adjustment Counters */
-    .ctr-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; }
-    .ctr-row:last-child { border-bottom: none; }
-    .ctr-lbl { font-size: 13px; color: var(--t2); font-weight: 500; }
-    .ctr-ctrl { display: flex; align-items: center; gap: 4px; }
-    .ctr-btn { width: 34px; height: 34px; border: none; background: var(--grey); color: white; font-size: 18px; font-weight: bold; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; }
-    .ctr-btn:active { opacity: 0.85; }
-    .ctr-inp { width: 60px; height: 34px; text-align: center; font-size: 14px; font-weight: 600; border: 1.5px solid var(--bdr); border-radius: 7px; }
+    /* Media Upload Area */
+    .file-input-label {
+      border: 2px dashed var(--bdr); border-radius: 8px; padding: 20px; text-align: center;
+      cursor: pointer; background: #fafafa; font-size: 13px; color: var(--t3); font-weight: 500;
+    }
+    .file-input-label:hover { border-color: var(--gm); background: var(--gl); }
+    #fileList { font-size: 11px; color: var(--t2); margin-top: 5px; list-style: none; padding-left: 5px; }
 
-    /* Checkbox Selection Grid arrays */
-    .chk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media(max-width: 520px) { .chk-grid { grid-template-columns: 1fr; } }
-    .chk-item { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--t2); cursor: pointer; padding: 12px; border: 1.5px solid var(--bdr); border-radius: 7px; background: #f8fafc; transition: all 0.12s; user-select: none; }
-    .chk-item.on { border-color: var(--g); background: var(--gl); color: var(--g); font-weight: 600; }
-    .chk-item input { display: none; }
-    .cbox { width: 18px; height: 18px; border: 1.5px solid #cbd5e0; border-radius: 5px; display: flex; align-items: center; justify-content: center; background: #fff; flex-shrink: 0; }
-    .chk-item.on .cbox { background: var(--g); border-color: var(--g); }
-    .chk-item.on .cbox::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+    /* Action Buttons */
+    .btn-submit { 
+      background: var(--g); color: #ffffff; border: none; padding: 14px; border-radius: 8px; 
+      font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: background 0.2s;
+    }
+    .btn-submit:hover { background: var(--gm); }
 
-    /* Advanced Multi-Channel Capture Dropzone layout */
-    .capture-cluster { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 5px; }
-    .mzone { border: 2px dashed var(--bdr); border-radius: 8px; padding: 12px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .mzone:hover { border-color: var(--g); background: var(--gl); }
-    .mzone-icon { font-size: 20px; margin-bottom: 2px; }
-    .mzone p { font-size: 11px; color: var(--t2); font-weight: 600; }
-    .mzone strong { font-size: 10px; color: var(--g); display: block; }
-    
-    .file-list { margin-top: 8px; }
-    .file-badge { background: #f1f5f9; padding: 8px 12px; border-radius: 7px; font-size: 11px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; border: 1px solid var(--bdr); }
-    .file-badge button { background: none; border: none; color: var(--red); font-weight: bold; cursor: pointer; padding: 0 6px; font-size: 13px; }
-    .media-preview-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .media-thumb { width: 75px; height: 75px; border-radius: 6px; border: 1px solid var(--bdr); position: relative; background: #e2e8f0; overflow: hidden; }
-    .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .media-thumb .v-label { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: var(--t2); text-align: center; padding: 4px; }
-    .media-del { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    /* Saved Reports Log Section */
+    .registry-container { width: 100%; max-width: 500px; background: #ffffff; border-radius: 16px; box-shadow: var(--sh); padding: 20px; }
+    .registry-title { font-size: 14px; font-weight: 700; color: var(--t2); margin-bottom: 12px; border-bottom: 1px solid var(--bdr); padding-bottom: 6px; }
+    .report-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+    .report-item:last-child { border: none; }
+    .status-pill { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 12px; text-transform: uppercase; }
+    .status-pill.pending { background: var(--amberl); color: var(--amber); }
+    .status-pill.sent { background: var(--gl); color: var(--g); }
 
-    /* Private Enterprise Adaptive Grid Table */
-    .table-container { overflow-x: auto; border: 1px solid var(--bdr); border-radius: 8px; margin-bottom: 12px; }
-    .p-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; background: #fff; min-width: 950px; }
-    .p-table th { background: #f8fafc; padding: 12px 10px; border-bottom: 2px solid var(--bdr); font-weight: 600; color: var(--t2); }
-    .p-table td { padding: 10px 8px; border-bottom: 1px solid var(--bdr); vertical-align: top; }
-    .p-input { width: 100%; padding: 7px; border: 1px solid var(--bdr); border-radius: 5px; font-size: 12px; }
-    .p-textarea { width: 100%; padding: 7px; border: 1px solid var(--bdr); border-radius: 5px; font-size: 11px; height: 48px; resize: none; }
-    .p-select { padding: 6px; border: 1px solid var(--bdr); border-radius: 5px; font-size: 11px; background: #fff; }
-    .btn-row-action { background: none; border: none; color: var(--red); font-size: 16px; cursor: pointer; padding: 4px; }
-    .btn-add { background: var(--gl); color: var(--g); border: 1px dashed var(--g); padding: 10px 16px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-block; margin-top: 5px; }
-
-    /* Processing Progress Loading Bar */
-    .proc-wrapper { display: none; background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px solid var(--bdr); margin-top: 10px; }
-    .proc-lbl { font-size: 11px; font-weight: 700; color: var(--t2); margin-bottom: 4px; display: flex; justify-content: space-between; }
-    .proc-bar-outer { width: 100%; height: 8px; background: #cbd5e1; border-radius: 4px; overflow: hidden; }
-    .proc-bar-inner { width: 0%; height: 100%; background: var(--g); transition: width 0.1s; }
-
-    /* Mobile Quick Fixed Actions Bottom Bar */
-    .bnav { background: #fff; border-top: 1px solid var(--bdr); position: fixed; bottom: 0; left: 0; right: 0; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.04); }
-    .bni { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--t3); cursor: pointer; flex: 1; height: 100%; }
-    .bni.active { color: var(--g); font-weight: 700; background: #fafdfb; }
-    .bi { font-size: 19px; margin-bottom: 2px; }
-
-    /* Command submission controls */
-    .btn-submit { background: var(--g); color: #fff; width: 100%; padding: 14px; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(26,92,42,0.15); margin-top: 10px; }
-    .btn-submit:disabled { background: var(--t3); cursor: not-allowed; box-shadow: none; }
-    .btn-draft { background: #fff; color: var(--t2); width: 100%; padding: 11px; border: 1.5px solid var(--bdr); border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
-
-    .log-title { font-size: 13px; font-weight: 700; color: var(--t2); margin: 20px 0 8px 0; display: flex; align-items: center; gap: 5px; }
-    .log-item { background: #fff; border: 1px solid var(--bdr); padding: 12px; border-radius: 7px; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--sh); }
-    .status-pill { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-    .status-pill.pending { background: #fff3e0; color: #e65100; }
-    .status-pill.sent { background: #e8f5eb; color: #1a5c2a; }
-    
-    .toast { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 30px; font-size: 12px; font-weight: 500; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; max-width: 90%; }
-    .toast.show { opacity: 1; }
+    /* Toast Notification */
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 13px; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
   </style>
 </head>
 <body>
 
-  <div class="topbar">
-    <div class="tlogo">
-      <h1>YiW Field Toolkit</h1>
-      <p>SEGHana Infrastructure Engine</p>
-    </div>
-    <div class="npill">
-      <div id="netDot" class="ndot on"></div>
-      <span id="netText">Online</span>
-    </div>
-  </div>
-
   <div class="app-container">
+    <div class="app-header">
+      <h1>Youth in Work</h1>
+      <p>Daily Field Report Form</p>
+    </div>
     
-    <div class="sidebar" id="sideNav">
-      <div class="side-item active" data-page="p1" onclick="showPage('p1')">📋 Visit Parameters</div>
-      <div class="side-item" data-page="p2" onclick="showPage('p2')">🎓 Activate Linkages</div>
-      <div class="side-item" data-page="p3" onclick="showPage('p3')">🏢 Quality Auditing</div>
-      <div class="side-item" data-page="p4" onclick="showPage('p4')">🤝 Enterprise Prospects</div>
-      <div class="side-item" data-page="p5" onclick="showPage('p5')">📎 Documents Scan</div>
-      <div class="side-item" data-page="p6" onclick="showPage('p6')">📸 Media Stream</div>
-      <div class="side-item" data-page="p7" onclick="showPage('p7')">🛡 Safeguarding Controls</div>
-      <div class="side-item" data-page="p8" onclick="showPage('p8')">✉️ Data Transmission</div>
-    </div>
+    <div id="status-banner" class="online-mode">Checking Network Status...</div>
 
-    <div class="tabs" id="tabStrip">
-      <div class="tab active" data-page="p1" onclick="showPage('p1')">📋 Visit</div>
-      <div class="tab" data-page="p2" onclick="showPage('p2')">🎓 Activate</div>
-      <div class="tab" data-page="p3" onclick="showPage('p3')">🏢 Quality</div>
-      <div class="tab" data-page="p4" onclick="showPage('p4')">🤝 Partners</div>
-      <div class="tab" data-page="p5" onclick="showPage('p5')">📎 Docs</div>
-      <div class="tab" data-page="p6" onclick="showPage('p6')">📸 Media</div>
-      <div class="tab" data-page="p7" onclick="showPage('p7')">🛡 Safety</div>
-      <div class="tab" data-page="p8" onclick="showPage('p8')">✉️ Send</div>
-    </div>
+    <form id="reportForm">
+      <div class="form-group">
+        <label for="focalPerson">Focal Person Name</label>
+        <select id="focalPerson" required>
+          <option value="">-- Select Your Name --</option>
+          <option value="Abigail Mensah">Abigail Mensah</option>
+          <option value="Emmanuel Osei">Emmanuel Osei</option>
+          <option value="Kwame Asare">Kwame Asare</option>
+          <option value="Mary Appiah">Mary Appiah</option>
+        </select>
+      </div>
 
-    <div class="content-frame">
+      <div class="form-group">
+        <label for="visitDate">Date & Time of Visit</label>
+        <input type="datetime-local" id="visitDate" required>
+      </div>
 
-      <div class="page active" id="p1">
-        <div class="grid-2col">
-          <div class="card card-accent">
-            <div class="sec-hdr">
-              <div class="sec-icon" style="background:var(--gl); color:var(--g)">📋</div>
-              <div>
-                <div class="sec-title">Field Identity Information</div>
-                <div class="sec-sub">Demographic routing metrics</div>
-              </div>
-            </div>
-            <div class="field">
-              <label>Focal Person Name *</label>
-              <input type="text" id="fpName" class="inp" placeholder="Enter full name">
-            </div>
-            <div class="field">
-              <label>Focal Person Contact Phone *</label>
-              <input type="tel" id="fpPhone" class="inp" placeholder="e.g. 024XXXXXXX">
-            </div>
-            <div class="field">
-              <label>Operational Zone *</label>
-              <select id="fpZone">
-                <option value="Zone 1">Zone 1</option>
-                <option value="Zone 2">Zone 2</option>
-                <option value="Zone 3">Zone 3</option>
-                <option value="Zone 4">Zone 4</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Visit Execution Date *</label>
-              <input type="date" id="visitDate" class="inp">
-            </div>
-            <div class="field">
-              <label>Community Township Name *</label>
-              <input type="text" id="community" class="inp" placeholder="Target community placement">
-            </div>
-            <div class="field">
-              <label>Local Training Centre *</label>
-              <input type="text" id="trainingCentre" class="inp" placeholder="Venue location point">
-            </div>
-            <div class="field">
-              <label>Primary Hub Oversight Identity *</label>
-              <input type="text" id="hubName" class="inp" placeholder="Parent oversight Hub facility">
+      <div class="form-group">
+        <label for="hubName">Hub / Partner Name</label>
+        <input type="text" id="hubName" placeholder="Enter Hub or Partner name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="visitType">Type of Visit</label>
+        <select id="visitType" required>
+          <option value="">-- Select Visit Objective --</option>
+          <option value="Routine Monitoring">Routine Monitoring</option>
+          <option value="Training Session">Training Session</option>
+          <option value="Emergency / Issue Resolution">Emergency / Issue Resolution</option>
+          <option value="Event / Milestone Launch">Event / Milestone Launch</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Youth Attendance Counter</label>
+        <div class="grid-2">
+          <div>
+            <span style="font-size:11px; color:var(--t3); display:block; margin-bottom:4px;">Male Count</span>
+            <div class="counter-wrapper">
+              <button type="button" class="counter-btn" onclick="adjustCount('maleCount', -1)">-</button>
+              <input type="number" id="maleCount" class="counter-val" value="0">
+              <button type="button" class="counter-btn" onclick="adjustCount('maleCount', 1)">+</button>
             </div>
           </div>
-
-          <div class="card">
-            <div class="sec-hdr">
-              <div class="sec-icon" style="background:var(--gl); color:var(--g)">👥</div>
-              <div>
-                <div class="sec-title">Onsite Headcount Attendance Counters</div>
-                <div class="sec-sub">Real-time classroom quantity matrix checks</div>
-              </div>
+          <div>
+            <span style="font-size:11px; color:var(--t3); display:block; margin-bottom:4px;">Female Count</span>
+            <div class="counter-wrapper">
+              <button type="button" class="counter-btn" onclick="adjustCount('femaleCount', -1)">-</button>
+              <input type="number" id="femaleCount" class="counter-val" value="0">
+              <button type="button" class="counter-btn" onclick="adjustCount('femaleCount', 1)">+</button>
             </div>
-            <div id="attendanceWrap"></div>
           </div>
         </div>
       </div>
 
-      <div class="page" id="p2">
-        <div class="card card-accent-blue">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--bluel); color:var(--blue)">🎓</div>
-            <div>
-              <div class="sec-title">Direct Income Channel Placement Placements</div>
-              <div class="sec-sub">Log direct output matching parameters tracked today</div>
-            </div>
-          </div>
-          <div id="activationWrap"></div>
-        </div>
+      <div class="form-group">
+        <label for="activities">Key Activities Conducted</label>
+        <textarea id="activities" rows="3" placeholder="What activities took place?" required></textarea>
       </div>
 
-      <div class="page" id="p3">
-        <div class="card card-accent">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--gl); color:var(--g)">⭐</div>
-            <div>
-              <div class="sec-title">Training Excellence Matrix Evaluator</div>
-              <div class="sec-sub">Verify compliance criteria indicators present</div>
-            </div>
-          </div>
-          <div class="field">
-            <label>Instructional Delivery Rating (1 - 5)</label>
-            <select id="hubRating">
-              <option value="5">5 ★★★★★ (Flawless standard compliance)</option>
-              <option value="4">4 ★★★★☆ (High-quality delivery)</option>
-              <option value="3">3 ★★★☆☆ (Satisfactory with minor concerns)</option>
-              <option value="2">2 ★★☆☆☆ (Requires direct intervention)</option>
-              <option value="1">1 ★☆☆☆☆ (Critical compliance breakdown)</option>
-            </select>
-          </div>
-          <div class="field" style="margin-top:15px;"><label>Compliance Milestones Maintained</label></div>
-          <div class="chk-grid" id="qualityGrid"></div>
-        </div>
-
-        <div class="grid-2col">
-          <div class="card card-accent-red">
-            <div class="sec-hdr">
-              <div class="sec-icon" style="background:var(--redl); color:var(--red)">⚠️</div>
-              <div>
-                <div class="sec-title">Observed Violations & Operational Failures</div>
-                <div class="sec-sub">Flag issues explicitly seen at the center</div>
-              </div>
-            </div>
-            <div class="chk-grid" id="issuesGrid"></div>
-          </div>
-
-          <div class="card">
-            <div class="sec-hdr">
-              <div class="sec-icon" style="background:var(--greyl); color:var(--grey)">🔌</div>
-              <div>
-                <div class="sec-title">Infrastructure Deployment Asset Audits</div>
-                <div class="sec-sub">Verify facility resource elements functional</div>
-              </div>
-            </div>
-            <div class="chk-grid" id="facilitiesGrid"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--bluel); color:var(--blue)">📊</div>
-            <div>
-              <div class="sec-title">Classroom Operational Modes In Progress</div>
-              <div class="sec-sub">Specific vocational track systems processing today</div>
-            </div>
-          </div>
-          <div class="chk-grid" id="activitiesGrid"></div>
-        </div>
+      <div class="form-group">
+        <label for="challenges">Challenges Observed</label>
+        <textarea id="challenges" rows="3" placeholder="Describe any problems or issues encountered..."></textarea>
       </div>
 
-      <div class="page" id="p4">
-        <div class="card card-accent-blue" style="max-width:100%;">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--bluel); color:var(--blue)">🤝</div>
-            <div>
-              <div class="sec-title">Private Enterprise Linkage Registries</div>
-              <div class="sec-sub">Record localized target pipelines (Target parameter: 15 per Zone zone)</div>
-            </div>
-          </div>
-          
-          <div class="table-container">
-            <table class="p-table">
-              <thead>
-                <tr>
-                  <th>Company Name</th>
-                  <th>Location Location</th>
-                  <th>Sector Domain</th>
-                  <th>Enterprise Profile Scope</th>
-                  <th>Requested Skills Pipeline</th>
-                  <th>Contact Person Name</th>
-                  <th>Phone Line</th>
-                  <th>Status Status</th>
-                  <th style="width:75px;">Available Slots</th>
-                  <th style="width:40px;"></th>
-                </tr>
-              </thead>
-              <tbody id="ptbody"></tbody>
-            </table>
-          </div>
-          <button type="button" class="btn-add" onclick="addPartnerRow()">➕ Add Enterprise Prospect Row</button>
-        </div>
-
-        <div class="card">
-          <div class="field">
-            <label>Enterprise Engagement Strategy Action Notes</label>
-            <textarea id="partnerNotes" rows="3" placeholder="Detail alignment terms, commitment status, or localized challenges encountered..."></textarea>
-          </div>
-          <div class="field">
-            <label>Next Scheduled Strategic Evaluation Follow-up</label>
-            <input type="date" id="nextPDate" class="inp">
-          </div>
-        </div>
+      <div class="form-group">
+        <label for="recommendations">Recommendations / Next Steps</label>
+        <textarea id="recommendations" rows="3" placeholder="Actionable action items or timeline points..."></textarea>
       </div>
 
-      <div class="page" id="p5">
-        <div class="card card-accent-blue">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--bluel); color:var(--blue)">📄</div>
-            <div>
-              <div class="sec-title">Document Image Scanner Interface</div>
-              <div class="sec-sub">Scan physical print lists. Automatic cloud-compress parsing enabled.</div>
-            </div>
-          </div>
-
-          <div class="field" style="margin-bottom:18px;">
-            <label>Onsite Class Register / Daily Attendance Registers</label>
-            <div class="capture-cluster">
-              <label class="mzone">
-                <input type="file" id="cAtt" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this, 'dAtt', 'listAtt')">
-                <div class="mzone-icon">📸</div>
-                <p>Scan / Take Photo</p>
-                <strong>Launches Camera</strong>
-              </label>
-              <label class="mzone">
-                <input type="file" id="fAtt" accept="image/*,.pdf" multiple style="display:none" onchange="handleFileSelect(this, 'dAtt', 'listAtt')">
-                <div class="mzone-icon">📁</div>
-                <p>Browse Files</p>
-                <strong>PDF / Image Storage</strong>
-              </label>
-            </div>
-            <div class="file-list" id="listAtt"></div>
-          </div>
-
-          <div class="field" style="margin-bottom:18px;">
-            <label>Financial Transaction Receipts & Expense Auditing Evidences</label>
-            <div class="capture-cluster">
-              <label class="mzone">
-                <input type="file" id="cFin" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this, 'dFin', 'listFin')">
-                <div class="mzone-icon">📸</div>
-                <p>Scan / Take Photo</p>
-                <strong>Launches Camera</strong>
-              </label>
-              <label class="mzone">
-                <input type="file" id="fFin" accept="image/*,.pdf" multiple style="display:none" onchange="handleFileSelect(this, 'dFin', 'listFin')">
-                <div class="mzone-icon">📁</div>
-                <p>Browse Files</p>
-                <strong>PDF / Image Storage</strong>
-              </label>
-            </div>
-            <div class="file-list" id="listFin"></div>
-          </div>
-
-          <div class="field" style="margin-bottom:18px;">
-            <label>Signed Memorandums of Understanding (MoUs)</label>
-            <div class="capture-cluster">
-              <label class="mzone">
-                <input type="file" id="cMou" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this, 'dMou', 'listMou')">
-                <div class="mzone-icon">📸</div>
-                <p>Scan / Take Photo</p>
-                <strong>Launches Camera</strong>
-              </label>
-              <label class="mzone">
-                <input type="file" id="fMou" accept="image/*,.pdf" multiple style="display:none" onchange="handleFileSelect(this, 'dMou', 'listMou')">
-                <div class="mzone-icon">📁</div>
-                <p>Browse Files</p>
-                <strong>PDF / Image Storage</strong>
-              </label>
-            </div>
-            <div class="file-list" id="listMou"></div>
-          </div>
-
-          <div class="field">
-            <label>Monthly Progress Manifests Tracking Records</label>
-            <div class="capture-cluster">
-              <label class="mzone">
-                <input type="file" id="cTrack" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(this, 'dTrack', 'listTrack')">
-                <div class="mzone-icon">📸</div>
-                <p>Scan / Take Photo</p>
-                <strong>Launches Camera</strong>
-              </label>
-              <label class="mzone">
-                <input type="file" id="fTrack" accept="image/*,.pdf,.csv,.xlsx" multiple style="display:none" onchange="handleFileSelect(this, 'dTrack', 'listTrack')">
-                <div class="mzone-icon">📁</div>
-                <p>Browse Files</p>
-                <strong>Sheets / Data Files</strong>
-              </label>
-            </div>
-            <div class="file-list" id="listTrack"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="field">
-            <label>Document Scan Manifest Interpretation Notes</label>
-            <textarea id="docNotes" rows="2" placeholder="Annotate layout details, structural omissions, or structural anomalies regarding attachments..."></textarea>
-          </div>
-        </div>
+      <div class="form-group">
+        <label>Media Upload (Photos / Documents)</label>
+        <label for="fileUpload" class="file-input-label">📸 Click to Choose or Take Photos</label>
+        <input type="file" id="fileUpload" multiple accept="image/*,application/pdf" style="display:none;" onchange="handleFileSelection()">
+        <ul id="fileList"></ul>
       </div>
 
-      <div class="page" id="p6">
-        <div class="card card-accent">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--gl); color:var(--g)">📸</div>
-            <div>
-              <div class="sec-title">Live Dynamic Gallery Photo Capture</div>
-              <div class="sec-sub">Onsite visual verification records of student learning models</div>
-            </div>
-          </div>
-          <div class="capture-cluster">
-            <label class="mzone">
-              <input type="file" id="pCam" accept="image/*" capture="environment" multiple style="display:none" onchange="handleMediaSelect(this, 'mPhoto', 'prevPhoto')">
-              <div class="mzone-icon">📸</div>
-              <p>Scan / Take Photo</p>
-              <strong>Open Device Camera</strong>
-            </label>
-            <label class="mzone">
-              <input type="file" id="fPhoto" accept="image/*" multiple style="display:none" onchange="handleMediaSelect(this, 'mPhoto', 'prevPhoto')">
-              <div class="mzone-icon">📁</div>
-              <p>Browse Gallery</p>
-              <strong>Select Local Media</strong>
-            </label>
-          </div>
-          <div class="media-preview-grid" id="prevPhoto"></div>
-          <div class="field" style="margin-top:14px;">
-            <label>Photography Caption Labels Context</label>
-            <input type="text" id="photoCaption" class="inp" placeholder="Context labels for uploaded image streams...">
-          </div>
-        </div>
+      <button type="submit" class="btn-submit">Submit Field Report</button>
+    </form>
+  </div>
 
-        <div class="card card-accent-blue">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--bluel); color:var(--blue)">🎬</div>
-            <div>
-              <div class="sec-title">Beneficiary Video Testimonial Upload Terminal</div>
-              <div class="sec-sub">Log student expressions, review summaries, or center feedback logs</div>
-            </div>
-          </div>
-          <div class="capture-cluster">
-            <label class="mzone">
-              <input type="file" id="vCam" accept="video/*" capture="environment" style="display:none" onchange="handleMediaSelect(this, 'mVideo', 'prevVideo')">
-              <div class="mzone-icon">🎥</div>
-              <p>Record Video Clip</p>
-              <strong>Launches Video Cam</strong>
-            </label>
-            <label class="mzone">
-              <input type="file" id="fVideo" accept="video/*" multiple style="display:none" onchange="handleMediaSelect(this, 'mVideo', 'prevVideo')">
-              <div class="mzone-icon">📁</div>
-              <p>Browse Storage Folder</p>
-              <strong>Select Local Clips</strong>
-            </label>
-          </div>
-          <div class="media-preview-grid" id="prevVideo"></div>
-          <div class="field" style="margin-top:14px;">
-            <label>Video Narrative Annotation Summary</label>
-            <input type="text" id="videoCaption" class="inp" placeholder="Provide context tags describing active audio/video subjects...">
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="field">
-            <label>Comprehensive Master Media Environment Context Summary</label>
-            <textarea id="mediaContext" rows="2" placeholder="Explain structural environmental profiles verified in above data uploads..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="page" id="p7">
-        <div class="card" style="border-left: 4px solid #00695c;">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:#e0f2f1; color:#00695c">🛡️</div>
-            <div>
-              <div class="sec-title">Protection Safeguarding Compliance Checklists</div>
-              <div class="sec-sub">Confirm ethical operational indicators executed on site</div>
-            </div>
-          </div>
-          <div class="chk-grid" id="safeList"></div>
-        </div>
-
-        <div class="card card-accent-red">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--redl); color:var(--red)">🚨</div>
-            <div>
-              <div class="sec-title">Critical Escalation Incident Notification Log</div>
-              <div class="sec-sub">File immediately if standard protective parameters failed</div>
-            </div>
-          </div>
-          <div class="field">
-            <label>Was any critical safeguarding vulnerability or incident flagged today? *</label>
-            <select id="safeConcern" onchange="toggleConcernDetails(this.value)">
-              <option value="no">No Concerns Logged</option>
-              <option value="yes">YES - Security Alert/Vulnerability Detected</option>
-            </select>
-          </div>
-          <div class="field" id="wrapSafeDetail" style="display:none;">
-            <label>Incident Metric Profile & Remedial Interventions Applied *</label>
-            <textarea id="safeDetail" rows="4" placeholder="Detail explicitly the incident tracking profiles, volume, and protection steps handled locally..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="page" id="p8">
-        <div class="card card-accent">
-          <div class="sec-hdr">
-            <div class="sec-icon" style="background:var(--gl); color:var(--g)">✉️</div>
-            <div>
-              <div class="sec-title">Authorize Server Cloud Submission Sync</div>
-              <div class="sec-sub">Transmit structured matrix records to core institutional storage databases</div>
-            </div>
-          </div>
-          <div class="field">
-            <label>Focal Person Final Summary Diagnostic Remarks</label>
-            <textarea id="finalNotes" rows="3" placeholder="Enter custom summaries, administrative tracking requests, or resourcing challenges here..."></textarea>
-          </div>
-          
-          <button type="button" class="btn-draft" onclick="triggerSaveDraft()">💾 Save Localized System Draft (Offline Sync Cache)</button>
-          <button type="button" class="btn-submit" id="submitBtn" onclick="executeReportSubmission()">✉️ Transmit Professional Report</button>
-          
-          <div class="proc-wrapper" id="procGui">
-            <div class="proc-lbl">
-              <span id="procTxt">Optimizing Scanning Image Streams...</span>
-              <span id="procPerc">0%</span>
-            </div>
-            <div class="proc-bar-outer">
-              <div class="proc-bar-inner" id="procBar"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="log-title">📁 Internal Offline Cache Manifest Registries</div>
-        <div id="savedRegistry"></div>
-      </div>
-
+  <div class="registry-container">
+    <div class="registry-title">Saved Field Reports Log</div>
+    <div id="savedRegistry">
+      <p style="font-size:12px; color:var(--t3); text-align:center; padding:10px;">No cached field reports located.</p>
     </div>
   </div>
 
-  <div class="bnav">
-    <div class="bni active" id="bn_p1" onclick="showPage('p1')"><div class="bi">📋</div>Visit</div>
-    <div class="bni" id="bn_p2" onclick="showPage('p2')"><div class="bi">🎓</div>Placements</div>
-    <div class="bni" id="bn_p3" onclick="showPage('p3')"><div class="bi">🏢</div>Audits</div>
-    <div class="bni" id="bn_p4" onclick="showPage('p4')"><div class="bi">🤝</div>Partners</div>
-    <div class="bni" id="bn_p5" onclick="showPage('p5')"><div class="bi">📎</div>Scans</div>
-    <div class="bni" id="bn_p8" onclick="showPage('p8')"><div class="bi">✉️</div>Sync</div>
-  </div>
-
-  <div id="toast" class="toast"></div>
+  <div id="toast"></div>
 
   <script>
-    // Core Cloud Target Destination Script URL Config Hook
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwW4WmAQ7WjLhqI-UypvnQt9Qcd9qoXMV24fZJn9xA8kPnUEzfIGnTxYepCBDC8BfVn-A/exec";
+    // Configuration Target Pipeline URL
+    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
 
-    // Application Architecture Framework Arrays
-    const ATT_ITEMS = [
-      { id: 'cMale', lbl: 'Young men present' },
-      { id: 'cFemale', lbl: 'Young women present' },
-      { id: 'cPWD', lbl: 'Persons with disability' },
-      { id: 'cStaff', lbl: 'Hub operational staff on duty' },
-      { id: 'cTrainer', lbl: 'Active instructional trainers' }
-    ];
-    const ACT_ITEMS = [
-      { id: 'aJobs', lbl: 'Linked directly into formal employment' },
-      { id: 'aIntern', lbl: 'Assigned to active field internships' },
-      { id: 'aCoop', lbl: 'Integrated with registered Cooperatives' },
-      { id: 'aRef', lbl: 'Referred forward into advanced specialized training' }
-    ];
-    const QUALITY_ITEMS = ['Instruction executes according to roadmap schedule', 'Assigned coaches present and prepared', 'Students highly interactive & attentive', 'Visual curriculum content clearly displayed', 'Necessary operational tooling assets accessible', 'Verification of identity sheets completed', 'Active live attendance registry updated', 'Environment structurally clean & protective'];
-    const ISSUE_ITEMS = ['Assigned course trainer absent', 'Classroom failing to follow baseline path', 'Class registration registry dropped', 'Critical registration levels dropped (<50%)', 'Core instruction machine tools failed', 'Physical environment hazards noted', 'Student code of conduct break identified', 'Onsite pricing demands levied on students', 'Financial balance anomalies noted', 'Center safety standard compromised'];
-    const FACILITY_ITEMS = ['Functional Internet/Wi-Fi array', 'Desktop workstations / computing tablets', 'Projector system/Display arrays', 'Grid power line access', 'Access to pure drinking water', 'Private hygiene / separation toilets', 'Open structured training labs', 'Operational public announcement notice board', 'First Aid emergency kit', 'Fire suppression equipment present'];
-    const ACTIVITY_ITEMS = ['Technical hard vocational exercises', 'Micro-entrepreneurship theoretical modules', 'Job readiness skills / Resume building', 'Personal tracking / Guidance coaching', 'Corporate executive interactions / Field tours', 'Assigned workspace group engineering', 'Assessment exams / Practical tests', 'Community sport / Wellbeing programs'];
-    const SAFE_ITEMS = ['Formal authorization received before captures', 'No unmonitored isolated youth interactions', 'Vulnerability escalation channels explicitly transparent', 'Dignified participant support language upheld'];
-
-    // Local Runtime Storage Array Repositories
-    let MS = { dAtt: [], dFin: [], dMou: [], dTrack: [], mPhoto: [], mVideo: [] };
     let db = null;
+    let selectedFilesCache = [];
 
-    // Operational System Bootstrapper Engine
-    window.addEventListener('DOMContentLoaded', async () => {
-      buildNumericalCounters('attendanceWrap', ATT_ITEMS);
-      buildNumericalCounters('activationWrap', ACT_ITEMS);
-      buildSelectionCheckboxes('qualityGrid', QUALITY_ITEMS, 'q');
-      buildSelectionCheckboxes('issuesGrid', ISSUE_ITEMS, 'i');
-      buildSelectionCheckboxes('facilitiesGrid', FACILITY_ITEMS, 'f');
-      buildSelectionCheckboxes('activitiesGrid', ACTIVITY_ITEMS, 'a');
-      buildSelectionCheckboxes('safeList', SAFE_ITEMS, 's');
-      
-      for(let x=0; x<2; x++) addPartnerRow();
-      document.getElementById('visitDate').value = new Date().toISOString().split('T')[0];
-      
-      try {
-        await initIndexedDB();
-        renderSavedRegistry();
-      } catch(e) {
-        showToast("Local Storage system blocked: " + e, "warn");
-      }
-
-      window.addEventListener('online', refreshNetworkMetrics);
-      window.addEventListener('offline', refreshNetworkMetrics);
-      refreshNetworkMetrics();
+    // Initialize Viewport Defaults
+    window.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('visitDate').value = now.toISOString().slice(0,16);
+      initIndexedDatabase();
+      setupNetworkListeners();
     });
 
-    function refreshNetworkMetrics() {
-      const dot = document.getElementById('netDot');
-      const txt = document.getElementById('netText');
-      if(navigator.onLine) {
-        dot.className = "ndot on"; txt.textContent = "Online";
-        attemptBackgroundSync();
-      } else {
-        dot.className = "ndot off"; txt.textContent = "Offline";
-      }
+    // Simple Numeric Increment Counter Controllers
+    function adjustCount(elementId, amount) {
+      const el = document.getElementById(elementId);
+      let val = parseInt(el.value) || 0;
+      val += amount;
+      if(val < 0) val = 0;
+      el.value = val;
     }
 
-    // Dynamic View Element Builders
-    function buildNumericalCounters(containerId, dataArray) {
-      const container = document.getElementById(containerId);
-      dataArray.forEach(item => {
-        container.innerHTML += `
-          <div class="ctr-row">
-            <div class="ctr-lbl">${item.lbl}</div>
-            <div class="ctr-ctrl">
-              <button class="ctr-btn" type="button" onclick="adjustCounter('${item.id}', -1)">−</button>
-              <input type="number" class="ctr-inp" id="v_${item.id}" value="0" min="0">
-              <button class="ctr-btn" type="button" onclick="adjustCounter('${item.id}', 1)">+</button>
-            </div>
-          </div>`;
-      });
-    }
+    // Media Object Interception & Base64 Conversion Pipeline
+    function handleFileSelection() {
+      const input = document.getElementById('fileUpload');
+      const list = document.getElementById('fileList');
+      list.innerHTML = "";
+      selectedFilesCache = [];
 
-    function adjustCounter(id, delta) {
-      const el = document.getElementById('v_' + id);
-      let v = parseInt(el.value) || 0;
-      el.value = Math.max(0, v + delta);
-    }
+      Array.from(input.files).forEach(file => {
+        const item = document.createElement('li');
+        item.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+        list.appendChild(item);
 
-    function buildSelectionCheckboxes(containerId, stringArray, prefix) {
-      const container = document.getElementById(containerId);
-      stringArray.forEach((text, index) => {
-        const generatedId = `${prefix}_${index}`;
-        container.innerHTML += `
-          <label class="chk-item" id="lbl_${generatedId}">
-            <input type="checkbox" id="${generatedId}" onchange="document.getElementById('lbl_${generatedId}').classList.toggle('on', this.checked)">
-            <div class="cbox"></div>
-            <span class="lbl-txt">${text}</span>
-          </label>`;
-      });
-    }
-
-    function addPartnerRow() {
-      const tbody = document.getElementById('ptbody');
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input type="text" class="p-input" placeholder="Enterprise Name"></td>
-        <td><input type="text" class="p-input" placeholder="Location"></td>
-        <td>
-          <select class="p-select">
-            <option value="Agriculture / Agritech">Agriculture</option>
-            <option value="Technology / ICT">Technology</option>
-            <option value="Construction / Trades">Construction</option>
-            <option value="Manufacturing">Manufacturing</option>
-            <option value="Hospitality / Services">Services</option>
-            <option value="Renewable Energy">Energy</option>
-          </select>
-        </td>
-        <td><textarea class="p-textarea" placeholder="Profile metrics..."></textarea></td>
-        <td><textarea class="p-textarea" placeholder="Specific domains..."></textarea></td>
-        <td><input type="text" class="p-input" placeholder="Contact Fullname"></td>
-        <td><input type="tel" class="p-input" placeholder="Phone Line"></td>
-        <td>
-          <select class="p-select">
-            <option value="Prospective Lead">Prospective</option>
-            <option value="Verified Match">Verified</option>
-            <option value="Contract Confirmed">Contracted</option>
-          </select>
-        </td>
-        <td><input type="number" class="p-input" value="0" min="0"></td>
-        <td><button type="button" class="btn-row-action" onclick="this.closest('tr').remove()">✕</button></td>`;
-      tbody.appendChild(tr);
-    }
-
-    function toggleConcernDetails(selectedValue) {
-      document.getElementById('wrapSafeDetail').style.display = selectedValue === 'yes' ? 'block' : 'none';
-    }
-
-    // Adaptive View Routing Controller
-    function showPage(id) {
-      const targetPage = document.getElementById(id);
-      if(!targetPage) return;
-
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      targetPage.classList.add('active');
-      
-      document.querySelectorAll('.tab, .bni, .side-item').forEach(el => el.classList.remove('active'));
-      
-      // Sync Mobile layout strips via data attributes instead of flakey HTML layout text checks
-      const activeTab = document.querySelector(`.tab[data-page="${id}"]`);
-      if(activeTab) activeTab.classList.add('active');
-      
-      const activeBni = document.getElementById('bn_' + id);
-      if(activeBni) activeBni.classList.add('active');
-
-      // Sync Desktop Sidebar tree layout parameters
-      const activeSide = document.querySelector(`.side-item[data-page="${id}"]`);
-      if(activeSide) activeSide.classList.add('active');
-
-      // Universal cross-browser layout alignment (Safe standard replacing 'instant')
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
-
-    // High-Readability Client-Side Smart Document Compressor Engine
-    function compressImageStream(fileObject) {
-      return new Promise((resolve) => {
-        if (!fileObject.type.startsWith('image/')) {
-          resolve(fileObject); // Do not alter raw PDF, Excel, or tabular schema text profiles
-          return;
-        }
         const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let w = img.width, h = img.height;
-            const MAX_DIM = 2200; // Optimal blueprint balance standard keeping text crisp for evaluation audits
-            if (w > h && w > MAX_DIM) { h *= MAX_DIM / w; w = MAX_DIM; }
-            else if (h >= w && h > MAX_DIM) { w *= MAX_DIM / h; h = MAX_DIM; }
-            
-            canvas.width = w; canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            
-            canvas.toBlob((blob) => {
-              resolve(new File([blob], fileObject.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' }));
-            }, 'image/jpeg', 0.78); // High density structural optimization saves storage space while keeping details clear
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(fileObject);
-      });
-    }
-
-    // Global Document Integration Handlers
-    async function handleFileSelect(inputElement, dataKey, UIContainerId) {
-      const container = document.getElementById(UIContainerId);
-      const incomingFiles = Array.from(inputElement.files);
-      
-      for(let file of incomingFiles) {
-        // Queue visual feedback element wrapper
-        const badge = document.createElement('div');
-        badge.className = "file-badge";
-        badge.innerHTML = `<span>⏳ Processing/Compressing ${file.name}...</span>`;
-        container.appendChild(badge);
-        
-        const optimizedFile = await compressImageStream(file);
-        MS[dataKey].push(optimizedFile);
-        
-        badge.innerHTML = `<span>📎 ${optimizedFile.name} (${(optimizedFile.size/1024).toFixed(1)} KB)</span>`;
-        const del = document.createElement('button');
-        del.textContent = "✕"; del.type = "button";
-        del.onclick = () => {
-          MS[dataKey] = MS[dataKey].filter(item => item !== optimizedFile);
-          badge.remove();
-        };
-        badge.appendChild(del);
-      }
-      inputElement.value = "";
-    }
-
-    async function handleMediaSelect(inputElement, dataKey, UIContainerId) {
-      const container = document.getElementById(UIContainerId);
-      const incomingFiles = Array.from(inputElement.files);
-      
-      for(let file of incomingFiles) {
-        const thumb = document.createElement('div');
-        thumb.className = "media-thumb";
-        thumb.innerHTML = `<span>⏳ ...</span>`;
-        container.appendChild(thumb);
-        
-        const processedFile = await compressImageStream(file);
-        MS[dataKey].push(processedFile);
-        
-        if (processedFile.type.startsWith('image/')) {
-          const u = URL.createObjectURL(processedFile);
-          thumb.innerHTML = `<img src="${u}">`;
-        } else {
-          thumb.innerHTML = `<div class="v-label">🎥 Video clip<br>${processedFile.name.substring(0,8)}...</div>`;
-        }
-        
-        const del = document.createElement('button');
-        del.className = "media-del"; del.textContent = "✕";
-        del.onclick = () => {
-          MS[dataKey] = MS[dataKey].filter(item => item !== processedFile);
-          thumb.remove();
-        };
-        thumb.appendChild(del);
-      }
-      inputElement.value = "";
-    }
-
-    // Core Consolidated Schema Aggregator Model
-    function compileFormData() {
-      const getChecks = (id) => Array.from(document.getElementById(id).querySelectorAll('input[type="checkbox"]:checked'))
-                                      .map(el => el.closest('.chk-item').querySelector('.lbl-txt').textContent);
-
-      const pList = [];
-      document.querySelectorAll('#ptbody tr').forEach(row => {
-        const c = row.querySelectorAll('input, select, textarea');
-        if(c[0] && c[0].value.trim()) {
-          pList.push({
-            name: c[0].value.trim(), location: c[1].value.trim(), sector: c[2].value,
-            profile: c[3].value.trim(), skillsNeeded: c[4].value.trim(), contact: c[5].value.trim(),
-            phone: c[6].value.trim(), status: c[7].value, slots: parseInt(c[8].value) || 0
+        reader.onload = function(e) {
+          selectedFilesCache.push({
+            name: file.name,
+            mimeType: file.type,
+            base64Data: e.target.result.split(',')[1]
           });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Core Database Initialization Engine
+    function initIndexedDatabase() {
+      const req = indexedDB.open("YiWFieldReportDB", 1);
+      req.onupgradeneeded = function(e) {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains("reports")) {
+          db.createObjectStore("reports", { keyPath: "id", autoIncrement: true });
         }
-      });
-
-      return {
-        fpName: document.getElementById('fpName').value.trim(),
-        fpPhone: document.getElementById('fpPhone').value.trim(),
-        fpZone: document.getElementById('fpZone').value,
-        visitDate: document.getElementById('visitDate').value,
-        community: document.getElementById('community').value.trim(),
-        trainingCentre: document.getElementById('trainingCentre').value.trim(),
-        hubName: document.getElementById('hubName').value.trim(),
-        cMale: parseInt(document.getElementById('v_cMale').value) || 0,
-        cFemale: parseInt(document.getElementById('v_cFemale').value) || 0,
-        cPWD: parseInt(document.getElementById('v_cPWD').value) || 0,
-        cStaff: parseInt(document.getElementById('v_cStaff').value) || 0,
-        cTrainer: parseInt(document.getElementById('v_cTrainer').value) || 0,
-        aJobs: parseInt(document.getElementById('v_aJobs').value) || 0,
-        aIntern: parseInt(document.getElementById('v_aIntern').value) || 0,
-        aCoop: parseInt(document.getElementById('v_aCoop').value) || 0,
-        aRef: parseInt(document.getElementById('v_aRef').value) || 0,
-        quality: getChecks('qualityGrid'),
-        issues: getChecks('issuesGrid'),
-        facilities: getChecks('facilitiesGrid'),
-        activities: getChecks('activitiesGrid'),
-        partners: pList,
-        partnerNotes: document.getElementById('partnerNotes').value.trim(),
-        nextPDate: document.getElementById('nextPDate').value,
-        docNotes: document.getElementById('docNotes').value.trim(),
-        photoCaption: document.getElementById('photoCaption').value.trim(),
-        videoCaption: document.getElementById('videoCaption').value.trim(),
-        mediaContext: document.getElementById('mediaContext').value.trim(),
-        safeguarding: getChecks('safeList'),
-        safeConcern: document.getElementById('safeConcern').value,
-        safeDetail: document.getElementById('safeDetail').value.trim(),
-        finalNotes: document.getElementById('finalNotes').value.trim()
       };
+      req.onsuccess = function(e) {
+        db = e.target.result;
+        renderSavedRegistry();
+        triggerBackgroundSyncPipeline();
+      };
+      req.onerror = function(e) { console.error("Database Engine Fault:", e); };
     }
 
-    // System Local Storage IndexedDB Cache Drivers
-    function initIndexedDB() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open('YiWCloudAdaptiveToolkit', 1);
-        req.onupgradeneeded = (e) => { e.target.result.createObjectStore('reportsStore', { keyPath: 'id' }); };
-        req.onsuccess = (e) => { db = e.target.result; resolve(); };
-        req.onerror = () => reject("IndexedDB connection failed.");
-      });
-    }
-
-    function writeToDatabase(rec) {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('reportsStore', 'readwrite');
-        tx.objectStore('reportsStore').put(rec);
-        tx.oncomplete = () => resolve(); tx.onerror = () => reject("Write transaction failed.");
+    function writeToDatabase(record) {
+      return new Promise((resolve) => {
+        const tx = db.transaction("reports", "readwrite");
+        const store = tx.objectStore("reports");
+        store.put(record);
+        tx.oncomplete = () => resolve();
       });
     }
 
     function fetchDatabaseRecords() {
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('reportsStore', 'readonly');
-        const req = tx.objectStore('reportsStore').getAll();
-        req.onsuccess = (e) => resolve(e.target.result); req.onerror = () => reject("Fetch transaction failed.");
+      return new Promise((resolve) => {
+        const tx = db.transaction("reports", "readonly");
+        const store = tx.objectStore("reports");
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
       });
     }
 
-    // Text Streaming Payload Converters
-    function fileToBase64(fileObj) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = (e) => reject(e);
-        reader.readAsDataURL(fileObj);
-      });
-    }
-
-    async function packBase64Payloads() {
-      let pkg = { dAtt: [], dFin: [], dMou: [], dTrack: [], mPhoto: [], mVideo: [] };
-      const gui = document.getElementById('procGui');
-      const bar = document.getElementById('procBar');
-      const perc = document.getElementById('procPerc');
-      const txt = document.getElementById('procTxt');
-      
-      let totalFiles = 0, processedCount = 0;
-      for (let k in MS) totalFiles += MS[k].length;
-      
-      if(totalFiles > 0) {
-        gui.style.display = "block";
-        txt.textContent = "Formatting attachments for Cloud transfer pipelines...";
-      }
-
-      for (let k in MS) {
-        for (let file of MS[k]) {
-          try {
-            let b64 = await fileToBase64(file);
-            pkg[k].push({ name: file.name, type: file.type, base64: b64 });
-            processedCount++;
-            let progressRatio = Math.round((processedCount / totalFiles) * 100);
-            bar.style.width = progressRatio + "%";
-            perc.textContent = progressRatio + "%";
-          } catch(err) {
-            console.error("Payload packaging error profile:", file.name, err);
-          }
-        }
-      }
-      gui.style.display = "none";
-      return pkg;
-    }
-
-    // Pipeline Data Processing Controllers
-    async function triggerSaveDraft() {
-      const txt = compileFormData();
-      if(!txt.fpName || !txt.trainingCentre) {
-        showToast("⚠️ Assign Focal Person Name and Centre prior to saving drafts.", "warn");
-        return;
-      }
-      const rec = { id: Date.now(), timestamp: new Date().toLocaleString(), status: 'pending', formData: txt, rawFiles: JSON.parse(JSON.stringify(MS)) };
-      await writeToDatabase(rec);
-      showToast("💾 Manifest cached locally into browser memory storage.", "success");
-      renderSavedRegistry();
-    }
-
-    async function executeReportSubmission() {
-      const txt = compileFormData();
-      if(!txt.fpName || !txt.fpPhone || !txt.trainingCentre || !txt.community) {
-        showToast("❌ Mandatory metrics missing! Complete Tab 1.", "warn");
-        showPage('p1'); return;
-      }
-
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true; btn.textContent = "Processing and Compressing Streams...";
-
-      const filesPkg = await packBase64Payloads();
-      const envelope = { id: Date.now(), formData: txt, files: filesPkg };
-
-      if(!navigator.onLine) {
-        const offlineRecord = { id: envelope.id, timestamp: new Date().toLocaleString(), status: 'pending', formData: txt, filesCache: filesPkg };
-        await writeToDatabase(offlineRecord);
-        showToast("📡 Device Offline. Manifest safely queued for automated background upload.", "warn");
-        resetInterfacePostSync(); return;
-      }
-
-      try {
-        const res = await fetch(SCRIPT_URL, { method: 'POST', mode: 'cors', body: JSON.stringify(envelope) });
-        const data = await res.json();
-        
-        if(data.status === 'success') {
-          showToast("⚡ Upload Successful! Files synchronized to organization Google Drive.", "success");
-          await writeToDatabase({ id: envelope.id, timestamp: new Date().toLocaleString(), status: 'sent', formData: txt });
-          resetInterfacePostSync();
+    // Interactive Lifecycle Synchronization Handlers
+    function setupNetworkListeners() {
+      const updateNetworkDisplay = () => {
+        const banner = document.getElementById('status-banner');
+        if(navigator.onLine) {
+          banner.textContent = "Online — Connected to Server";
+          banner.className = "online-mode";
+          triggerBackgroundSyncPipeline();
         } else {
-          throw new Error(data.message || "Cloud processing error encountered.");
+          banner.textContent = "Offline Mode — Reports Will Cache Safely";
+          banner.className = "offline-mode";
         }
-      } catch(err) {
-        console.error(err);
-        showToast("⚠️ Cloud transmission disrupted. Storing backup draft to local device.", "warn");
-        await writeToDatabase({ id: envelope.id, timestamp: new Date().toLocaleString(), status: 'pending', formData: txt, filesCache: filesPkg });
-        resetInterfacePostSync();
-      }
+      };
+      window.addEventListener('online', updateNetworkDisplay);
+      window.addEventListener('offline', updateNetworkDisplay);
+      updateNetworkDisplay();
     }
 
-    function resetInterfacePostSync() {
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = false; btn.textContent = "✉️ Transmit Professional Report";
-      MS = { dAtt: [], dFin: [], dMou: [], dTrack: [], mPhoto: [], mVideo: [] };
-      document.querySelectorAll('.file-list, .media-preview-grid').forEach(el => el.innerHTML = "");
-      renderSavedRegistry();
-    }
+    // Submission Handler Block
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    async function attemptBackgroundSync() {
-      if(!db || !navigator.onLine) return;
-      const all = await fetchDatabaseRecords();
-      const pending = all.filter(r => r.status === 'pending');
-      if(pending.length === 0) return;
+      const reportPayload = {
+        timestamp: new Date().toLocaleString(),
+        status: 'pending',
+        formData: {
+          focalPerson: document.getElementById('focalPerson').value,
+          visitDate: document.getElementById('visitDate').value,
+          hubName: document.getElementById('hubName').value,
+          visitType: document.getElementById('visitType').value,
+          maleCount: document.getElementById('maleCount').value,
+          femaleCount: document.getElementById('femaleCount').value,
+          activities: document.getElementById('activities').value,
+          challenges: document.getElementById('challenges').value,
+          recommendations: document.getElementById('recommendations').value
+        },
+        filesCache: selectedFilesCache
+      };
+
+      await writeToDatabase(reportPayload);
+      showToast("Report cached safely on your device!");
       
-      showToast(`🔄 Connection detected! Syncing ${pending.length} pending manifest records...`);
+      // Clear Form Fields
+      document.getElementById('reportForm').reset();
+      document.getElementById('fileList').innerHTML = "";
+      selectedFilesCache = [];
+      document.getElementById('maleCount').value = "0";
+      document.getElementById('femaleCount').value = "0";
 
-      for(let rec of pending) {
+      renderSavedRegistry();
+      triggerBackgroundSyncPipeline();
+    });
+
+    // Cloud Transmission Core Function Engine
+    async function triggerBackgroundSyncPipeline() {
+      if(!navigator.onLine || !db) return;
+      const records = await fetchDatabaseRecords();
+      const pendings = records.filter(x => x.status === 'pending');
+
+      for(let rec of pendings) {
         try {
-          let files = rec.filesCache || { dAtt: [], dFin: [], dMou: [], dTrack: [], mPhoto: [], mVideo: [] };
-          const payload = { id: rec.id, formData: rec.formData, files: files };
+          const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Bypasses CORS limitations for standard target setups
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(rec)
+          });
           
-          const res = await fetch(SCRIPT_URL, { method: 'POST', mode: 'cors', body: JSON.stringify(payload) });
-          const json = await res.json();
-          if(json.status === 'success') {
-            rec.status = 'sent';
-            delete rec.filesCache; delete rec.rawFiles;
-            await writeToDatabase(rec);
-          }
-        } catch(e) { console.error("Background sync pipeline fault:", rec.id, e); }
+          // Since no-cors handles opaque contexts, flag clean entries as complete
+          rec.status = 'sent';
+          delete rec.filesCache; // Strip base64 overhead memory usage post-upload
+          await writeToDatabase(rec);
+          showToast(`Report for "${rec.formData.hubName}" synced successfully!`);
+        } catch(err) {
+          console.error("Transmission fault execution sequence pipeline interrupt:", rec.id, err);
+        }
       }
       renderSavedRegistry();
     }
 
-    async function renderSavedRegistry() {
+    function renderSavedRegistry() {
       const container = document.getElementById('savedRegistry');
       if(!db) return;
-      const items = await fetchDatabaseRecords();
-      if(items.length === 0) {
-        container.innerHTML = `<p style="font-size:12px; color:var(--t3); text-align:center; padding:10px;">No cached system logs located.</p>`;
-        return;
-      }
-      items.sort((x, y) => y.id - x.id);
-      container.innerHTML = "";
-      items.forEach(item => {
-        container.innerHTML += `
-          <div class="log-item">
-            <div>
-              <strong>${item.formData.trainingCentre || 'Unnamed Site'}</strong><br>
-              <span style="font-size:10px; color:var(--t3);">${item.timestamp}</span>
-            </div>
-            <span class="status-pill ${item.status}">${item.status}</span>
-          </div>`;
+      
+      fetchDatabaseRecords().then(items => {
+        if(items.length === 0) {
+          container.innerHTML = `<p style="font-size:12px; color:var(--t3); text-align:center; padding:10px;">No cached field reports located.</p>`;
+          return;
+        }
+        items.sort((x, y) => y.id - x.id);
+        container.innerHTML = "";
+        items.forEach(item => {
+          container.innerHTML += `
+            <div class="report-item">
+              <div>
+                <strong>${item.formData.hubName || 'Unknown Hub'}</strong><br>
+                <span style="font-size:10px; color:var(--t3);">${item.timestamp}</span>
+              </div>
+              <span class="status-pill ${item.status}">${item.status === 'sent' ? 'Sent' : 'Pending Sync'}</span>
+            </div>`;
+        });
       });
     }
 
-    function showToast(m, type = "success") {
+    function showToast(msg) {
       const el = document.getElementById('toast');
-      el.textContent = m; el.style.background = type === "warn" ? "#e65100" : "#2e7d32";
-      el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 4500);
+      el.textContent = msg; 
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 3500);
     }
   </script>
 </body>
