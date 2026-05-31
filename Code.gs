@@ -16,15 +16,18 @@ var CC_EMAIL         = "execdir@seghana.net";
 // ── ENTRY POINT ──────────────────────────────────────────────
 function doPost(e) {
   try {
-    var payload = JSON.parse(e.postData.contents);
+    // Apps Script receives both application/json and text/plain from no-cors fetch
+    var raw     = e.postData.contents;
+    var payload = JSON.parse(raw);
     var action  = payload.action || 'legacy';
 
     if (action === 'uploadChunk') {
       return handleChunk(payload);
     } else if (action === 'finalise') {
       return handleFinalise(payload);
+    } else if (action === 'submitWithLinks') {
+      return handleSubmitWithLinks(payload);
     } else {
-      // Legacy single-POST fallback (no files)
       return handleLegacy(payload);
     }
   } catch(err) {
@@ -35,6 +38,52 @@ function doPost(e) {
 
 function doGet(e) {
   return jsonOut({ status:'ok', message:'YiW Script is live.' });
+}
+
+// ── SUBMIT WITH DRIVE LINKS (new primary handler) ────────────
+// Browser uploads files directly to Drive and sends us the links.
+// We just build the email and send it.
+function handleSubmitWithLinks(p) {
+  var d          = p.formData;
+  var driveLinks = p.driveLinks || {};
+  var totalFiles = p.totalFiles || 0;
+
+  // Build the file links HTML table from the Drive URLs
+  var fileLinksHtml = '';
+  var rows = '';
+  var count = 0;
+
+  var catOrder = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
+  catOrder.forEach(function(cat) {
+    var files = driveLinks[cat] || [];
+    files.forEach(function(f) {
+      rows += '<tr>' +
+        '<td style="padding:8px;border:1px solid #cbd5e1;font-weight:600;color:#1a5c2a;font-size:12px">' + (f.category||cat) + '</td>' +
+        '<td style="padding:8px;border:1px solid #cbd5e1;font-size:12px">' +
+          '<a href="' + f.url + '" style="color:#1565c0;font-weight:500">🔗 ' + f.name + '</a>' +
+        '</td></tr>';
+      count++;
+    });
+  });
+
+  if (count > 0) {
+    fileLinksHtml =
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">' +
+      '<tr style="background:#e8f5eb"><th style="padding:8px;border:1px solid #cbd5e1;text-align:left">Category</th>' +
+      '<th style="padding:8px;border:1px solid #cbd5e1;text-align:left">File — click to open in Drive</th></tr>' +
+      rows + '</table>';
+  } else {
+    fileLinksHtml = '<p style="color:#718096;font-style:italic;font-size:13px">No files were attached for this submission.</p>';
+  }
+
+  var htmlBody = buildEmailHtml(d, fileLinksHtml, '');
+  var subject  = 'YiW Field Report: ' + (d.fpName||'—') +
+                 ' — ' + (d.trainingCentre||d.hubName||'—') +
+                 ' (' + (d.visitDate||'—') + ')';
+
+  MailApp.sendEmail({ to:TO_EMAIL, cc:CC_EMAIL, subject:subject, htmlBody:htmlBody });
+  Logger.log('Email sent via submitWithLinks: ' + subject + ' | Files: ' + count);
+  return jsonOut({ status:'success', message:'Report emailed. ' + count + ' file(s) linked from Drive.' });
 }
 
 // ── CHUNK HANDLER ─────────────────────────────────────────────
@@ -62,7 +111,8 @@ function handleChunk(p) {
   var blob    = Utilities.newBlob(decoded, 'application/octet-stream', chunkName);
   tempFolder.createFile(blob);
 
-  // Check if all chunks are present
+  // Check if all chunks are present — with brief wait for last chunk to settle
+  Utilities.sleep(300);
   var allPresent = true;
   for (var i = 0; i < totalChunks; i++) {
     var iter = tempFolder.getFilesByName(fileName + '.chunk.' + i);

@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#1a5c2a"/>
 <title>YiW Daily Field Report — SEG Ghana</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --g:#1a5c2a;--gm:#2d7a3a;--gl:#e8f5eb;--gb:#4caf50;
@@ -615,8 +616,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 <script>
 // ── CONFIG ──
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2cHDWyqHWD8zxtY-yfS3NaOAl0pqTjwbAuQ2RRA9mQbzDDsUd6sT7x1AJ364T3PyIoQ/exec";
-const MAX_CHUNK  = 3 * 1024 * 1024; // 3 MB — stay under Apps Script 6 MB POST limit
+const SCRIPT_URL       = "https://script.google.com/macros/s/AKfycbyP1fE3kxcNRqeBMjtPXYf9UOhat7KKYwxiHSUrG0noFTtLE0rUZb1ilKLIWeU7q2QAvA/exec";
+const GDRIVE_CLIENT_ID = "993520086653-9kof7bk29472tmvcj4l1q3v44tkkau1e.apps.googleusercontent.com";
+const GDRIVE_SCOPE     = "https://www.googleapis.com/auth/drive.file";
+let   gdriveToken      = null;
 
 // ── DATA DEFINITIONS ──
 const ATT_ITEMS=[
@@ -755,7 +758,8 @@ function updatePCount(){
   document.getElementById('pbar').style.width=Math.min(100,Math.round(c/15*100))+'%';
 }
 
-// ── IMAGE COMPRESSION (from your friend's code — kept as-is, it's excellent) ──
+// ── IMAGE COMPRESSION ──
+// Moderate resize + quality — full originals go to Drive, these are just previews in the form
 function compressImage(file){
   return new Promise(resolve=>{
     if(!file.type.startsWith('image/')){resolve(file);return;}
@@ -765,14 +769,14 @@ function compressImage(file){
       img.onload=()=>{
         const canvas=document.createElement('canvas');
         let w=img.width,h=img.height;
-        const MAX=2200;
-        if(w>h&&w>MAX){h*=MAX/w;w=MAX;}
-        else if(h>=w&&h>MAX){w*=MAX/h;h=MAX;}
+        const MAX=2400; // high quality — files go directly to Drive, no size concern
+        if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+        else if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
         canvas.width=w;canvas.height=h;
         canvas.getContext('2d').drawImage(img,0,0,w,h);
         canvas.toBlob(blob=>{
           resolve(new File([blob],file.name.replace(/\.[^/.]+$/,'')+'.jpg',{type:'image/jpeg'}));
-        },'image/jpeg',0.78);
+        },'image/jpeg',0.88);
       };
       img.src=e.target.result;
     };
@@ -880,150 +884,207 @@ function initDB(){
 function dbWrite(rec){return new Promise((res,rej)=>{const tx=db.transaction('reports','readwrite');tx.objectStore('reports').put(rec);tx.oncomplete=res;tx.onerror=rej;});}
 function dbGetAll(){return new Promise((res,rej)=>{const tx=db.transaction('reports','readonly');const req=tx.objectStore('reports').getAll();req.onsuccess=e=>res(e.target.result);req.onerror=rej;});}
 
-// ── BASE64 HELPER ──
-function fileToBase64(f){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res(r.result.split(',')[1]);
-    r.onerror=rej;
-    r.readAsDataURL(f);
+// ── GOOGLE DRIVE API — DIRECT BROWSER UPLOAD ──────────────────
+// No size limit. Files go straight from browser → Drive.
+// Apps Script only receives form data + Drive file IDs → sends email.
+
+// Step 1: Get OAuth token via Google Identity Services popup
+function getDriveToken(){
+  return new Promise((resolve, reject)=>{
+    if(gdriveToken){ resolve(gdriveToken); return; }
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope:      GDRIVE_SCOPE,
+      callback:   (resp)=>{
+        if(resp.error){ reject(new Error(resp.error)); return; }
+        gdriveToken = resp.access_token;
+        // Token expires in 1hr — clear it so next submit re-authenticates
+        setTimeout(()=>{ gdriveToken=null; }, 55*60*1000);
+        resolve(gdriveToken);
+      }
+    });
+    client.requestAccessToken({prompt:''});
+  });
+}
+
+// Step 2: Find or create a Drive folder, return its ID
+async function getDriveFolderId(token, parentId, name){
+  // Search for existing folder
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name}' and '${parentId}' in parents and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,{
+    headers:{ Authorization:'Bearer '+token }
+  });
+  const data = await res.json();
+  if(data.files && data.files.length>0) return data.files[0].id;
+  // Create it
+  const create = await fetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',
+    headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' },
+    body: JSON.stringify({ name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] })
+  });
+  const folder = await create.json();
+  return folder.id;
+}
+
+// Step 3: Upload one file to Drive using multipart upload, return file ID + url
+async function uploadFileToDrive(token, file, folderId, onProgress){
+  const metadata = { name: file.name, parents: [folderId] };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)],{type:'application/json'}));
+  form.append('file', file);
+
+  return new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST','https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink');
+    xhr.setRequestHeader('Authorization','Bearer '+token);
+    xhr.upload.onprogress = e=>{ if(e.lengthComputable && onProgress) onProgress(e.loaded/e.total); };
+    xhr.onload = ()=>{
+      if(xhr.status===200){
+        const r = JSON.parse(xhr.responseText);
+        resolve({ id: r.id, url: r.webViewLink, name: file.name });
+      } else {
+        reject(new Error(`Drive upload failed: ${xhr.status} — ${xhr.responseText}`));
+      }
+    };
+    xhr.onerror = ()=>reject(new Error('Drive upload network error'));
+    xhr.send(form);
+  });
+}
+
+// Step 4: Make folder publicly viewable (so links work in email)
+async function shareFolderPublic(token, folderId){
+  await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,{
+    method:'POST',
+    headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' },
+    body: JSON.stringify({ role:'reader', type:'anyone' })
   });
 }
 
 // ── PROGRESS UI ──
-function setProgress(pct,msg){
-  const gui=document.getElementById('procGui');
-  document.getElementById('procBar').style.width=pct+'%';
-  document.getElementById('procPerc').textContent=pct+'%';
-  document.getElementById('procTxt').textContent=msg;
-  gui.style.display=pct>=100?'none':'block';
+function setProgress(pct, msg){
+  const gui = document.getElementById('procGui');
+  document.getElementById('procBar').style.width = pct+'%';
+  document.getElementById('procPerc').textContent = pct+'%';
+  document.getElementById('procTxt').textContent  = msg;
+  gui.style.display = (pct>=100||pct<0) ? 'none' : 'block';
 }
 
-// ── CHUNKED FILE UPLOAD ──
-// Sends files in chunks of MAX_CHUNK bytes so we never hit the 6MB Apps Script limit.
-// Each chunk POST carries: {action:'uploadChunk', reportId, category, fileName,
-//                           fileType, chunkIndex, totalChunks, chunkData (base64)}
-// Final POST carries:      {action:'finalise', reportId, formData}  → triggers email
-async function uploadFilesInChunks(reportId, formData){
-  // Flatten all files into a list with their category
-  const allFiles=[];
-  const categories={
-    dAtt:'Attendance Sheet', dFin:'Financial Document',
-    dMou:'MoU / Agreement',  dTrack:'Tracking Sheet',
-    mPhoto:'Photo',          mVideo:'Video'
+// ── MAIN UPLOAD + SUBMIT FLOW ──
+async function uploadAndSubmit(reportId, formData){
+  const catLabels = {
+    dAtt:'Attendance Sheets', dFin:'Financial Documents',
+    dMou:'MoUs & Agreements', dTrack:'Tracking Sheets',
+    mPhoto:'Photos',          mVideo:'Videos'
   };
-  for(const [cat] of Object.entries(categories)){
-    for(const f of (MS[cat]||[])){
-      allFiles.push({file:f, cat});
+
+  // Count all files
+  let totalFiles=0;
+  for(const k in MS) totalFiles += MS[k].length;
+
+  const uploadedLinks = {}; // category → [{name, url, id}]
+
+  if(totalFiles > 0){
+    // Get OAuth token (shows Google sign-in popup if needed)
+    setProgress(2, 'Signing in to Google Drive…');
+    let token;
+    try{
+      token = await getDriveToken();
+    } catch(e){
+      throw new Error('Google sign-in failed or was cancelled. Please try again.');
     }
-  }
 
-  const totalFiles=allFiles.length;
-  let filesDone=0;
+    // Create root folder "Youth in Work Field Reports Files"
+    setProgress(5, 'Setting up Drive folder…');
+    const rootId = await getDriveFolderId(token, 'root', 'Youth in Work Field Reports Files');
 
-  for(const {file,cat} of allFiles){
-    // Convert whole file to base64
-    const fullB64=await fileToBase64(file);
+    // Create subfolder for this specific report
+    const subName = `${formData.visitDate||'no-date'} — ${formData.fpName||'unknown'} (${formData.trainingCentre||formData.hubName||'unknown'})`;
+    const subId   = await getDriveFolderId(token, rootId, subName);
 
-    // Split into chunks of MAX_CHUNK raw bytes (base64 chars ≈ 4/3 × bytes)
-    const maxB64Chars=Math.floor(MAX_CHUNK*(4/3));
-    const totalChunks=Math.ceil(fullB64.length/maxB64Chars);
+    // Share the subfolder so links work in email
+    await shareFolderPublic(token, subId);
 
-    for(let ci=0;ci<totalChunks;ci++){
-      const chunkData=fullB64.slice(ci*maxB64Chars,(ci+1)*maxB64Chars);
-      const pct=Math.round(((filesDone+(ci+1)/totalChunks)/Math.max(totalFiles,1))*90);
-      setProgress(pct, `Uploading ${file.name} (part ${ci+1}/${totalChunks})…`);
-
-      let attempts=0, success=false;
-      while(attempts<3 && !success){
+    // Upload each file
+    let done = 0;
+    for(const [cat, label] of Object.entries(catLabels)){
+      const files = MS[cat] || [];
+      uploadedLinks[cat] = [];
+      for(const file of files){
+        const pct = 5 + Math.round((done/totalFiles)*88);
+        setProgress(pct, `Uploading ${file.name} (${done+1}/${totalFiles})…`);
         try{
-          const resp=await fetch(SCRIPT_URL,{
-            method:'POST', mode:'cors',
-            body:JSON.stringify({
-              action:'uploadChunk',
-              reportId,
-              category:cat,
-              fileName:file.name,
-              fileType:file.type||'application/octet-stream',
-              chunkIndex:ci,
-              totalChunks,
-              chunkData
-            })
-          });
-          const json=await resp.json();
-          if(json.status==='success'||json.status==='chunk_ok') success=true;
-          else throw new Error(json.message||'Chunk rejected');
-        }catch(err){
-          attempts++;
-          if(attempts>=3) console.error('Chunk failed after 3 tries:',file.name,ci,err);
-          else await new Promise(r=>setTimeout(r,1000*attempts));
+          const result = await uploadFileToDrive(token, file, subId,
+            (prog)=> setProgress(pct + Math.round(prog*(88/totalFiles)), `Uploading ${file.name}…`)
+          );
+          uploadedLinks[cat].push({ name:file.name, url:result.url, id:result.id, category:label });
+        } catch(err){
+          console.error('File upload failed:',file.name, err);
+          showToast(`⚠ Could not upload ${file.name} — continuing`, 'warn');
         }
+        done++;
       }
     }
-    filesDone++;
   }
 
-  // All files uploaded — now send form data and trigger email
-  setProgress(95,'Sending report and triggering email…');
-  const resp=await fetch(SCRIPT_URL,{
-    method:'POST', mode:'cors',
-    body:JSON.stringify({action:'finalise', reportId, formData})
+  // Send form data + Drive links to Apps Script → email
+  setProgress(95, 'Sending report and email…');
+  const resp = await fetch(SCRIPT_URL,{
+    method: 'POST',
+    mode:   'cors',
+    headers:{ 'Content-Type':'text/plain' },
+    body:   JSON.stringify({
+      action:   'submitWithLinks',
+      reportId,
+      formData,
+      driveLinks: uploadedLinks,
+      totalFiles
+    })
   });
-  const json=await resp.json();
-  setProgress(100,'Done');
+  const json = await resp.json();
+  setProgress(100, 'Done');
   return json;
 }
 
 // ── SAVE DRAFT ──
 async function triggerSaveDraft(){
-  const d=compileFormData();
+  const d = compileFormData();
   if(!d.fpName||!d.trainingCentre){
-    showToast('⚠ Enter focal person name and training centre first','warn');return;
+    showToast('⚠ Enter focal person name and training centre first','warn'); return;
   }
-  await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',formData:d});
+  await dbWrite({id:Date.now(), ts:new Date().toLocaleString(), status:'pending', formData:d});
   showToast('💾 Draft saved to device','success');
   renderSavedRegistry();
 }
 
 // ── SUBMIT ──
 async function executeReportSubmission(){
-  const d=compileFormData();
+  const d = compileFormData();
   if(!d.fpName||!d.fpPhone||!d.community||!d.trainingCentre){
-    showToast('⚠ Please complete all required fields on Page 1','warn');
-    showPage('p1');return;
+    showToast('⚠ Please complete required fields on Page 1','warn');
+    showPage('p1'); return;
   }
-  const btn=document.getElementById('submitBtn');
-  btn.disabled=true;btn.textContent='Uploading…';
-  const reportId='YiW_'+Date.now();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Uploading to Drive…';
+  const reportId = 'YiW_'+Date.now();
 
   if(!navigator.onLine){
-    // Save everything locally for later sync
-    const allFileData={};
-    for(const k in MS){
-      allFileData[k]=[];
-      for(const f of MS[k]){
-        try{ allFileData[k].push({name:f.name,type:f.type,b64:await fileToBase64(f)}); }
-        catch(e){ console.error(e); }
-      }
-    }
-    await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',
-                   formData:d,filesCache:allFileData,reportId});
-    showToast('📡 Offline — saved and will send when connected','warn');
-    resetAfterSubmit();return;
+    await dbWrite({id:Date.now(), ts:new Date().toLocaleString(), status:'pending', formData:d, reportId});
+    showToast('📡 Offline — saved locally, will send when connected','warn');
+    resetAfterSubmit(); return;
   }
 
   try{
-    const result=await uploadFilesInChunks(reportId, d);
-    if(result.status==='success'){
-      showToast('✅ Report submitted and emailed successfully!','success');
-      await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'sent',formData:d});
+    const result = await uploadAndSubmit(reportId, d);
+    if(result && result.status==='success'){
+      showToast('✅ Report submitted, files in Drive, email sent!','success');
+      await dbWrite({id:Date.now(), ts:new Date().toLocaleString(), status:'sent', formData:d});
     } else {
-      throw new Error(result.message||'Unknown error from script');
+      throw new Error((result&&result.message)||'Unknown error');
     }
-  }catch(e){
+  } catch(e){
     console.error('Submit error:',e);
-    showToast('⚠ Send failed — '+e.message,'warn');
-    await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',formData:d});
+    showToast('⚠ '+e.message,'warn');
+    await dbWrite({id:Date.now(), ts:new Date().toLocaleString(), status:'pending', formData:d});
   }
   resetAfterSubmit();
 }
