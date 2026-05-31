@@ -614,8 +614,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div id="toast" class="toast"></div>
 
 <script>
-// ── CONFIG — your Google Apps Script URL ──
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVJxFrZ66umGAxIUe9wvAwX5VUDNJb95IkUs8WB-QWobpsiLE_ZlL6NvrkaBEyfm7F3g/exec";
+// ── CONFIG ──
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2cHDWyqHWD8zxtY-yfS3NaOAl0pqTjwbAuQ2RRA9mQbzDDsUd6sT7x1AJ364T3PyIoQ/exec";
+const MAX_CHUNK  = 3 * 1024 * 1024; // 3 MB — stay under Apps Script 6 MB POST limit
 
 // ── DATA DEFINITIONS ──
 const ATT_ITEMS=[
@@ -879,37 +880,106 @@ function initDB(){
 function dbWrite(rec){return new Promise((res,rej)=>{const tx=db.transaction('reports','readwrite');tx.objectStore('reports').put(rec);tx.oncomplete=res;tx.onerror=rej;});}
 function dbGetAll(){return new Promise((res,rej)=>{const tx=db.transaction('reports','readonly');const req=tx.objectStore('reports').getAll();req.onsuccess=e=>res(e.target.result);req.onerror=rej;});}
 
-// ── BASE64 FILE PACKER (from your friend's code — kept as-is) ──
+// ── BASE64 HELPER ──
 function fileToBase64(f){
-  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(f);
+  });
 }
-async function packFiles(){
-  let pkg={dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]};
+
+// ── PROGRESS UI ──
+function setProgress(pct,msg){
   const gui=document.getElementById('procGui');
-  const bar=document.getElementById('procBar');
-  const perc=document.getElementById('procPerc');
-  const txt=document.getElementById('procTxt');
-  let total=0,done=0;
-  for(const k in MS) total+=MS[k].length;
-  if(total>0){gui.style.display='block';txt.textContent='Compressing and preparing files…';}
-  for(const k in MS){
-    for(const f of MS[k]){
-      try{
-        const b64=await fileToBase64(f);
-        pkg[k].push({name:f.name,type:f.type,base64:b64});
-        done++;bar.style.width=Math.round(done/total*100)+'%';
-        perc.textContent=Math.round(done/total*100)+'%';
-      }catch(e){console.error('Pack error:',f.name,e);}
+  document.getElementById('procBar').style.width=pct+'%';
+  document.getElementById('procPerc').textContent=pct+'%';
+  document.getElementById('procTxt').textContent=msg;
+  gui.style.display=pct>=100?'none':'block';
+}
+
+// ── CHUNKED FILE UPLOAD ──
+// Sends files in chunks of MAX_CHUNK bytes so we never hit the 6MB Apps Script limit.
+// Each chunk POST carries: {action:'uploadChunk', reportId, category, fileName,
+//                           fileType, chunkIndex, totalChunks, chunkData (base64)}
+// Final POST carries:      {action:'finalise', reportId, formData}  → triggers email
+async function uploadFilesInChunks(reportId, formData){
+  // Flatten all files into a list with their category
+  const allFiles=[];
+  const categories={
+    dAtt:'Attendance Sheet', dFin:'Financial Document',
+    dMou:'MoU / Agreement',  dTrack:'Tracking Sheet',
+    mPhoto:'Photo',          mVideo:'Video'
+  };
+  for(const [cat] of Object.entries(categories)){
+    for(const f of (MS[cat]||[])){
+      allFiles.push({file:f, cat});
     }
   }
-  gui.style.display='none';
-  return pkg;
+
+  const totalFiles=allFiles.length;
+  let filesDone=0;
+
+  for(const {file,cat} of allFiles){
+    // Convert whole file to base64
+    const fullB64=await fileToBase64(file);
+
+    // Split into chunks of MAX_CHUNK raw bytes (base64 chars ≈ 4/3 × bytes)
+    const maxB64Chars=Math.floor(MAX_CHUNK*(4/3));
+    const totalChunks=Math.ceil(fullB64.length/maxB64Chars);
+
+    for(let ci=0;ci<totalChunks;ci++){
+      const chunkData=fullB64.slice(ci*maxB64Chars,(ci+1)*maxB64Chars);
+      const pct=Math.round(((filesDone+(ci+1)/totalChunks)/Math.max(totalFiles,1))*90);
+      setProgress(pct, `Uploading ${file.name} (part ${ci+1}/${totalChunks})…`);
+
+      let attempts=0, success=false;
+      while(attempts<3 && !success){
+        try{
+          const resp=await fetch(SCRIPT_URL,{
+            method:'POST', mode:'cors',
+            body:JSON.stringify({
+              action:'uploadChunk',
+              reportId,
+              category:cat,
+              fileName:file.name,
+              fileType:file.type||'application/octet-stream',
+              chunkIndex:ci,
+              totalChunks,
+              chunkData
+            })
+          });
+          const json=await resp.json();
+          if(json.status==='success'||json.status==='chunk_ok') success=true;
+          else throw new Error(json.message||'Chunk rejected');
+        }catch(err){
+          attempts++;
+          if(attempts>=3) console.error('Chunk failed after 3 tries:',file.name,ci,err);
+          else await new Promise(r=>setTimeout(r,1000*attempts));
+        }
+      }
+    }
+    filesDone++;
+  }
+
+  // All files uploaded — now send form data and trigger email
+  setProgress(95,'Sending report and triggering email…');
+  const resp=await fetch(SCRIPT_URL,{
+    method:'POST', mode:'cors',
+    body:JSON.stringify({action:'finalise', reportId, formData})
+  });
+  const json=await resp.json();
+  setProgress(100,'Done');
+  return json;
 }
 
 // ── SAVE DRAFT ──
 async function triggerSaveDraft(){
   const d=compileFormData();
-  if(!d.fpName||!d.trainingCentre){showToast('⚠ Enter focal person name and training centre first','warn');return;}
+  if(!d.fpName||!d.trainingCentre){
+    showToast('⚠ Enter focal person name and training centre first','warn');return;
+  }
   await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',formData:d});
   showToast('💾 Draft saved to device','success');
   renderSavedRegistry();
@@ -919,30 +989,41 @@ async function triggerSaveDraft(){
 async function executeReportSubmission(){
   const d=compileFormData();
   if(!d.fpName||!d.fpPhone||!d.community||!d.trainingCentre){
-    showToast('⚠ Please complete all required fields on Page 1','warn');showPage('p1');return;
+    showToast('⚠ Please complete all required fields on Page 1','warn');
+    showPage('p1');return;
   }
   const btn=document.getElementById('submitBtn');
-  btn.disabled=true;btn.textContent='Preparing and sending…';
-  const files=await packFiles();
-  const envelope={id:Date.now(),formData:d,files};
+  btn.disabled=true;btn.textContent='Uploading…';
+  const reportId='YiW_'+Date.now();
+
   if(!navigator.onLine){
-    await dbWrite({id:envelope.id,ts:new Date().toLocaleString(),status:'pending',formData:d,filesCache:files});
+    // Save everything locally for later sync
+    const allFileData={};
+    for(const k in MS){
+      allFileData[k]=[];
+      for(const f of MS[k]){
+        try{ allFileData[k].push({name:f.name,type:f.type,b64:await fileToBase64(f)}); }
+        catch(e){ console.error(e); }
+      }
+    }
+    await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',
+                   formData:d,filesCache:allFileData,reportId});
     showToast('📡 Offline — saved and will send when connected','warn');
     resetAfterSubmit();return;
   }
+
   try{
-    const res=await fetch(SCRIPT_URL,{method:'POST',mode:'cors',body:JSON.stringify(envelope)});
-    const json=await res.json();
-    if(json.status==='success'){
-      showToast('✅ Report submitted successfully!','success');
-      await dbWrite({id:envelope.id,ts:new Date().toLocaleString(),status:'sent',formData:d});
+    const result=await uploadFilesInChunks(reportId, d);
+    if(result.status==='success'){
+      showToast('✅ Report submitted and emailed successfully!','success');
+      await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'sent',formData:d});
     } else {
-      throw new Error(json.message||'Server error');
+      throw new Error(result.message||'Unknown error from script');
     }
   }catch(e){
-    console.error(e);
-    showToast('⚠ Send failed — saved offline, will retry','warn');
-    await dbWrite({id:envelope.id,ts:new Date().toLocaleString(),status:'pending',formData:d,filesCache:files});
+    console.error('Submit error:',e);
+    showToast('⚠ Send failed — '+e.message,'warn');
+    await dbWrite({id:Date.now(),ts:new Date().toLocaleString(),status:'pending',formData:d});
   }
   resetAfterSubmit();
 }
