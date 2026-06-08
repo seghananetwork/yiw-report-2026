@@ -692,3 +692,10 @@ function buildEmailHtml(d, fileLinksHtml) {
   '</div>'+
   '</div></body></html>';
 }
+function authAll() {
+  DriveApp.getFoldersByName("test");
+  GmailApp.getInboxThreads(0, 1);
+  SpreadsheetApp.create("YiW_AuthTest_DeleteMe");
+  UrlFetchApp.fetch("https://www.google.com");
+  Logger.log("All permissions granted");
+}
