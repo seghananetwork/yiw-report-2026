@@ -248,17 +248,20 @@ function buildReportExcel(d, driveLinks) {
     sheet.setName('Field Report');
 
     // ── TITLE BLOCK ──
-    sheet.getRange('A1').setValue('SEG GHANA — YOUTH IN WORK PROGRAMME');
+    sheet.getRange('A1').setValue('SEG GHANA - YOUTH IN WORK PROGRAMME');
     sheet.getRange('A1').setFontSize(14).setFontWeight('bold').setFontColor('#1a5c2a');
     sheet.getRange('A1:H1').merge();
 
     sheet.getRange('A2').setValue('DAILY FIELD REPORT');
-    sheet.getRange('A2').setFontSize(11).setFontColor('#2d7a3a');
+    sheet.getRange('A2').setFontSize(11).setFontColor('#2d7a3a').setFontWeight('bold');
     sheet.getRange('A2:H2').merge();
 
-    sheet.getRange('A3').setValue('Generated: ' + new Date().toLocaleString());
+    sheet.getRange('A3').setValue('Generated: ' + new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'}));
     sheet.getRange('A3').setFontSize(9).setFontColor('#718096');
     sheet.getRange('A3:H3').merge();
+
+    // Title background
+    sheet.getRange('A1:H3').setBackground('#e8f5eb');
 
     var row = 5;
 
@@ -301,7 +304,7 @@ function buildReportExcel(d, driveLinks) {
     }
 
     // ── SECTION 1: FOCAL PERSON & VISIT ──
-    sectionHeader('👤  FOCAL PERSON & VISIT DETAILS', '#1a5c2a');
+    sectionHeader('FOCAL PERSON & VISIT DETAILS', '#1a5c2a');
     dataRow('Focal Person Name', d.fpName);
     dataRow('Phone', d.fpPhone);
     dataRow('Email', d.fpEmail);
@@ -312,12 +315,12 @@ function buildReportExcel(d, driveLinks) {
     dataRow('Community', d.community);
     dataRow('Training Centre', d.trainingCentre);
     dataRow('Centre Address', d.centreAddress);
-    dataRow('Centre Contact', (d.hubContact||'') + (d.hubContactPhone?' · '+d.hubContactPhone:''));
-    dataRow('Time on Site', (d.tArr||'—') + '  →  ' + (d.tDep||'—'));
+    dataRow('Centre Contact', (d.hubContact||'') + (d.hubContactPhone?' - '+d.hubContactPhone:''));
+    dataRow('Time on Site', (d.tArr||'--') + '  to  ' + (d.tDep||'--'));
     row++;
 
     // ── SECTION 2: ATTENDANCE ──
-    sectionHeader('👥  ATTENDANCE COUNT', '#b8860b');
+    sectionHeader('ATTENDANCE COUNT', '#b8860b');
     statRow(
       ['Young Men','Young Women','Persons with Disability','Hub Staff','Trainers / Facilitators'],
       [d.cMale, d.cFemale, d.cPWD, d.cStaff, d.cTrainer],
@@ -325,7 +328,7 @@ function buildReportExcel(d, driveLinks) {
     );
 
     // ── SECTION 3: ACTIVATION ──
-    sectionHeader('🚀  ACTIVATION & EMPLOYMENT OUTCOMES', '#2d7a3a');
+    sectionHeader('ACTIVATION & EMPLOYMENT OUTCOMES', '#2d7a3a');
     statRow(
       ['Formal Employment','Internships','Cooperatives','Referred for Training'],
       [d.aJobs, d.aIntern, d.aCoop, d.aRef],
@@ -341,12 +344,12 @@ function buildReportExcel(d, driveLinks) {
     row++;
 
     // ── SECTION 4: HUB QUALITY ──
-    sectionHeader('⭐  TRAINING CENTRE QUALITY & COMPLIANCE', '#00695c');
-    dataRow('Overall Rating', d.rating ? d.rating+'/5' : '—');
-    dataRow('Quality Indicators ✓', (d.quality||[]).join('\n'));
-    dataRow('Issues Flagged ⚠', (d.issues||[]).join('\n'));
-    dataRow('Activities Observed', (d.activities||[]).join('\n'));
-    dataRow('Facilities Available', (d.facilities||[]).join('\n'));
+    sectionHeader('TRAINING CENTRE QUALITY & COMPLIANCE', '#00695c');
+    dataRow('Overall Rating', d.rating ? d.rating+'/5' : '--');
+    dataRow('Quality Indicators', (d.quality||[]).join(', '));
+    dataRow('Issues Flagged', (d.issues||[]).join(', '));
+    dataRow('Activities Observed', (d.activities||[]).join(', '));
+    dataRow('Facilities Available', (d.facilities||[]).join(', '));
     dataRow('Challenges', d.challenges);
     dataRow('Recommendations', d.recommendations);
     dataRow('Urgency of Action', d.urgency);
@@ -354,10 +357,9 @@ function buildReportExcel(d, driveLinks) {
     row++;
 
     // ── SECTION 5: PARTNER ENGAGEMENT ──
-    sectionHeader('🤝  PARTNER ENGAGEMENT', '#1565c0');
+    sectionHeader('PARTNER ENGAGEMENT', '#1565c0');
     var partners = d.partners || [];
     if (partners.length > 0) {
-      // Partner table headers
       var pHeaders = ['Company','Location','Sector','Business Profile','Skills Needed','Contact','Phone','Status','Slots'];
       pHeaders.forEach(function(h,i){
         sheet.getRange(row, i+1).setValue(h)
@@ -381,7 +383,7 @@ function buildReportExcel(d, driveLinks) {
     row++;
 
     // ── SECTION 6: DOCUMENTS & MEDIA ──
-    sectionHeader('📎  DOCUMENTS & MEDIA UPLOADED', '#6a1b9a');
+    sectionHeader('DOCUMENTS & MEDIA UPLOADED', '#6a1b9a');
     var fc = countDriveLinks(driveLinks);
     dataRow('Attendance Sheets', fc.dAtt + ' file(s)');
     dataRow('Financial Documents', fc.dFin + ' file(s)');
@@ -395,7 +397,6 @@ function buildReportExcel(d, driveLinks) {
     dataRow('Video Description', d.videoCaption);
     dataRow('Media Context', d.mediaContext);
 
-    // File links
     var catOrder = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
     var catNames = {dAtt:'Attendance',dFin:'Financial',dMou:'MoU',dTrack:'Tracking',mPhoto:'Photo',mVideo:'Video'};
     catOrder.forEach(function(cat){
@@ -411,42 +412,61 @@ function buildReportExcel(d, driveLinks) {
     row++;
 
     // ── SECTION 7: SAFEGUARDING ──
-    sectionHeader('🛡  SAFEGUARDING', '#00695c');
+    sectionHeader('SAFEGUARDING', '#00695c');
     dataRow('Items Confirmed', (d.safeChecked||[]).length + ' of 8');
-    dataRow('Confirmed Items', (d.safeChecked||[]).join('\n'));
+    dataRow('Confirmed Items', (d.safeChecked||[]).join(', '));
     dataRow('Concern Raised?', d.safeConcern==='yes' ? 'YES' : 'No');
     if (d.safeConcern==='yes') {
       dataRow('Concern Details', d.safeTxt, '#fff0f0', '#fff8f8');
-      dataRow('Action Taken', d.safeAct, '#fff0f0', '#fff8f8');
-      dataRow('Reported To', d.safeRep, '#fff0f0', '#fff8f8');
+      dataRow('Action Taken',    d.safeAct, '#fff0f0', '#fff8f8');
+      dataRow('Reported To',     d.safeRep, '#fff0f0', '#fff8f8');
     }
     dataRow('Safeguarding Notes', d.safeNotes);
     row++;
 
     // ── SECTION 8: ADDITIONAL NOTES ──
     if (d.finalNotes) {
-      sectionHeader('📝  ADDITIONAL NOTES', '#455a64');
+      sectionHeader('ADDITIONAL NOTES', '#455a64');
       dataRow('Notes', d.finalNotes);
     }
 
     // ── FORMATTING FINAL TOUCHES ──
-    // Set row heights for data rows to auto
-    sheet.setColumnWidth(1, 180);
-    sheet.setColumnWidth(4, 300);
-    sheet.getRange(1,1,row,8).setWrap(true).setVerticalAlignment('middle');
+    sheet.setColumnWidth(1, 190);
+    sheet.setColumnWidth(2, 10);
+    sheet.setColumnWidth(3, 10);
+    sheet.setColumnWidth(4, 320);
+    sheet.setColumnWidth(5, 10);
+    sheet.setColumnWidth(6, 10);
+    sheet.setColumnWidth(7, 10);
+    sheet.setColumnWidth(8, 10);
+    sheet.getRange(1, 1, row, 8).setWrap(true).setVerticalAlignment('middle');
+
+    // CRITICAL: flush() forces all pending Sheets writes to disk
+    // before we attempt to export — without this the sheet exports blank
+    SpreadsheetApp.flush();
+    Utilities.sleep(2000); // extra safety buffer for large reports
 
     // Export as XLSX
     var ssId  = ss.getId();
-    var url   = 'https://docs.google.com/spreadsheets/d/' + ssId + '/export?format=xlsx';
+    var exportUrl = 'https://docs.google.com/spreadsheets/d/' + ssId +
+                    '/export?format=xlsx&id=' + ssId;
     var token = ScriptApp.getOAuthToken();
-    var resp  = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-    var xlsx  = resp.getBlob().setName(
+    var resp  = UrlFetchApp.fetch(exportUrl, {
+      headers: { Authorization: 'Bearer ' + token },
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      throw new Error('Export failed with HTTP ' + resp.getResponseCode());
+    }
+
+    var xlsx = resp.getBlob().setName(
       'YiW_Report_' + (d.fpName||'Unknown').replace(/\s+/g,'_') +
       '_' + (d.visitDate||'nodate') + '.xlsx'
     );
 
     // Clean up temp spreadsheet
-    DriveApp.getFileById(ssId).setTrashed(true);
+    try { DriveApp.getFileById(ssId).setTrashed(true); } catch(e) {}
 
     return xlsx;
 
@@ -691,11 +711,4 @@ function buildEmailHtml(d, fileLinksHtml) {
     'Submitted via YiW Field Reporting System · '+ts+'<br/>SEG Ghana | Youth in Work Programme'+
   '</div>'+
   '</div></body></html>';
-}
-function authAll() {
-  DriveApp.getFoldersByName("test");
-  GmailApp.getInboxThreads(0, 1);
-  SpreadsheetApp.create("YiW_AuthTest_DeleteMe");
-  UrlFetchApp.fetch("https://www.google.com");
-  Logger.log("All permissions granted");
 }
