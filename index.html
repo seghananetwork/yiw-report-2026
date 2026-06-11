@@ -1112,17 +1112,21 @@ async function attemptBackgroundSync(){
   showToast(`🔄 Syncing ${pending.length} pending report(s)…`);
   for(const rec of pending){
     try{
-      const d=rec.formData||{};
-      // Sanitise all array fields in case they're missing from old drafts
-      d.quality    = Array.isArray(d.quality)    ? d.quality    : [];
-      d.issues     = Array.isArray(d.issues)      ? d.issues     : [];
-      d.facilities = Array.isArray(d.facilities)  ? d.facilities : [];
-      d.activities = Array.isArray(d.activities)  ? d.activities : [];
-      d.partners   = Array.isArray(d.partners)    ? d.partners   : [];
-      d.safeChecked= Array.isArray(d.safeChecked) ? d.safeChecked: [];
-      // Send without files (files from old pending drafts are gone)
-      const result=await uploadAndSubmit('YiW_retry_'+rec.id, d);
-      if(result&&result.status==='success'){
+      const d=sanitiseFormData(rec.formData||{});
+      const resp=await fetch(SCRIPT_URL,{
+        method:'POST',
+        mode:'cors',
+        headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({
+          action:'submitWithLinks',
+          reportId:'YiW_sync_'+rec.id,
+          formData:d,
+          driveLinks:{dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]},
+          totalFiles:0
+        })
+      });
+      const json=await resp.json();
+      if(json&&json.status==='success'){
         rec.status='sent';
         await dbWrite(rec);
       }
@@ -1131,32 +1135,77 @@ async function attemptBackgroundSync(){
   renderSavedRegistry();
 }
 
-// Manual retry for a single stuck report
+// Manual retry for a single stuck report — sends form data directly, no Drive upload
 async function retrySingle(id){
   const all=await dbGetAll();
   const rec=all.find(r=>r.id===id);
-  if(!rec)return;
-  showToast('🔄 Retrying report…');
-  const d=rec.formData||{};
-  d.quality    = Array.isArray(d.quality)    ? d.quality    : [];
-  d.issues     = Array.isArray(d.issues)      ? d.issues     : [];
-  d.facilities = Array.isArray(d.facilities)  ? d.facilities : [];
-  d.activities = Array.isArray(d.activities)  ? d.activities : [];
-  d.partners   = Array.isArray(d.partners)    ? d.partners   : [];
-  d.safeChecked= Array.isArray(d.safeChecked) ? d.safeChecked: [];
+  if(!rec){showToast('Report not found','warn');return;}
+
+  showToast('🔄 Retrying…');
+
+  // Deep-sanitise all fields that might be missing in old drafts
+  const d=sanitiseFormData(rec.formData||{});
+
   try{
-    const result=await uploadAndSubmit('YiW_retry_'+id, d);
-    if(result&&result.status==='success'){
+    const resp=await fetch(SCRIPT_URL,{
+      method:'POST',
+      mode:'cors',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({
+        action:'submitWithLinks',
+        reportId:'YiW_retry_'+id,
+        formData:d,
+        driveLinks:{dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]},
+        totalFiles:0
+      })
+    });
+    const json=await resp.json();
+    if(json&&json.status==='success'){
       rec.status='sent';
       await dbWrite(rec);
-      showToast('✅ Report sent successfully!','success');
+      showToast('✅ Report sent!','success');
     } else {
-      showToast('⚠ Retry failed — '+((result&&result.message)||'unknown error'),'warn');
+      showToast('⚠ '+(json&&json.message||'Send failed'),'warn');
     }
   }catch(e){
-    showToast('⚠ Retry failed — '+e.message,'warn');
+    console.error('retrySingle error:',e);
+    showToast('⚠ Connection error — '+e.message,'warn');
   }
   renderSavedRegistry();
+}
+
+// Sanitise all array and numeric fields — makes old drafts safe to send
+function sanitiseFormData(d){
+  const safe={};
+  // Copy all string/number fields
+  const strings=['fpName','fpPhone','fpEmail','fpZone','visitDate','visitType',
+    'hubName','community','trainingCentre','centreAddress','hubContact','hubContactPhone',
+    'tArr','tDep','empName','empSector','enrolCourse','youthNames','highlight','yVoice',
+    'challenges','recommendations','urgency','followUpBy','partnerNotes','nextPDate',
+    'docNotes','photoCaption','videoCaption','mediaContext','safeConcern','safeTxt',
+    'safeAct','safeRep','safeNotes','finalNotes'];
+  strings.forEach(k=>{ safe[k]=typeof d[k]==='string'?d[k]:(d[k]||''); });
+
+  // Numeric fields
+  const nums=['cMale','cFemale','cPWD','cStaff','cTrainer',
+              'aJobs','aIntern','aCoop','aRef','enrolM','enrolF','rating'];
+  nums.forEach(k=>{ safe[k]=parseInt(d[k])||0; });
+
+  // Array fields — guard against undefined, null, or non-array
+  const arrays=['quality','issues','facilities','activities','safeChecked'];
+  arrays.forEach(k=>{ safe[k]=Array.isArray(d[k])?d[k]:[]; });
+
+  // Partners array — each item must be an object
+  safe.partners=Array.isArray(d.partners)?d.partners.map(p=>({
+    name:p.name||'',location:p.location||'',sector:p.sector||'',
+    profile:p.profile||'',skillsNeeded:p.skillsNeeded||'',
+    contact:p.contact||'',phone:p.phone||'',status:p.status||'',slots:p.slots||0
+  })):[];
+
+  // fileCounts
+  safe.fileCounts=d.fileCounts||{dAtt:0,dFin:0,dMou:0,dTrack:0,mPhoto:0,mVideo:0};
+
+  return safe;
 }
 
 // ── SAVED LIST ──
