@@ -277,39 +277,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
       <div class="field"><label>Hub / Training Service Provider *</label>
         <select id="hubName">
-          <option value="">Select hub…</option>
-          <option>Accra Technical University — Greater Accra — Accra</option>
-          <option>AfriTech Hub — Northern Region — Tamale</option>
-          <option>Agrico Hub — Bono East Region — Techiman</option>
-          <option>Agritech — Eastern Region — Teacher Mante</option>
-          <option>Boabab Entrepreneurs — Ahafo Region — Mim</option>
-          <option>Code Coast — Central Region — Cape Coast / Ekumfi</option>
-          <option>Core Business Solutions — Bono Region — Sunyani</option>
-          <option>CRIS Hub — Savannah Region — Damongo</option>
-          <option>Dansyn ISO — Upper East Region — Bolgatanga</option>
-          <option>Developers Academy — Oti Region — Dambai</option>
-          <option>Duapa Werkspace — Western Region — Takoradi</option>
-          <option>Edugha Institute for Social Development — Northern Region — Tamale</option>
-          <option>EMB Ahenfie — Ashanti Region — Kumasi</option>
-          <option>Ghana Chamber of Entrepreneurs with Disabilities — Greater Accra</option>
-          <option>GSP Hub — Volta Region — Ho</option>
-          <option>His Majesty Farms — Western North Region — Tarkwa</option>
-          <option>Innovation Light LGB — North East Region — Gambaga</option>
-          <option>Ketiwa Enterprise — Ahafo Region — Goaso</option>
-          <option>Kumasi City Incubation Hub — Ashanti Region — Kumasi</option>
-          <option>MB Hub — Western Region — Takoradi</option>
-          <option>Nneka Youth Foundation — Volta Region — Ve-Agbome near Hohoe</option>
-          <option>Noni Hub — Upper West Region — Wa</option>
-          <option>Northern Innovation Lab Foundation — North East Region — Walewale</option>
-          <option>Qet Farms — Eastern Region — Teacher Mante near Suhum</option>
-          <option>Rutab Hub — Western North Region — Sefwi Wiawso</option>
-          <option>Sabon Sake — Volta Region — Sogakope</option>
-          <option>The Assistance Hub — Northern Region — Tamale</option>
-          <option>Ubunju Innovation Hub — Eastern Region — Koforidua</option>
-          <option>Upward Motion Foundation — Central Region — Gomoa Obuasi</option>
-          <option>Wislaw Educational Fund — Western North Region — Tarkwa</option>
-          <option>Wo'Afrique Tech Hub — Central Region — Winneba</option>
-          <option>Other — specify below</option>
+          <option value="">Select zone first…</option>
         </select>
       </div>
       <div class="field"><label>If "Other" — Hub name</label><input type="text" id="hubOther" class="inp" placeholder="Full name of hub or TSP"/></div>
@@ -616,10 +584,46 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 <script>
 // ── CONFIG ──
-const SCRIPT_URL       = "https://script.google.com/macros/s/AKfycbyjMMmvussDWDCohenrG1mcahMKpu0dcs-UJB_hx7OEzsDpeQaVUn-gKBYcVsI3652V-g/exec";
+const SCRIPT_URL       = "https://script.google.com/macros/s/AKfycbwW4WmAQ7WjLhqI-UypvnQt9Qcd9qoXMV24fZJn9xA8kPnUEzfIGnTxYepCBDC8BfVn-A/exec";
 const GDRIVE_CLIENT_ID = "993520086653-9kof7bk29472tmvcj4l1q3v44tkkau1e.apps.googleusercontent.com";
 const GDRIVE_SCOPE     = "https://www.googleapis.com/auth/drive.file";
 let   gdriveToken      = null;
+
+// ── HUBS BY REGION (region → hub filtering) ──
+const HUBS_BY_REGION = {
+  'Greater Accra': ['Accra Technical University','Ghana Chamber of Entrepreneurs with Disabilities'],
+  'Ashanti':       ['EMB Ahenfie','Kumasi City Incubation Hub'],
+  'Northern':      ['AfriTech Hub','Edugha Institute for Social Development','The Assistance Hub'],
+  'Western':       ['Duapa Werkspace','MB Hub'],
+  'Central':       ['Code Coast','Upward Motion Foundation',"Wo'Afrique Tech Hub"],
+  'Eastern':       ['Agritech','Qet Farms','Ubunju Innovation Hub'],
+  'Volta':         ['GSP Hub','Nneka Youth Foundation','Sabon Sake'],
+  'Upper East':    ['Dansyn ISO'],
+  'Upper West':    ['Noni Hub'],
+  'Bono':          ['Core Business Solutions'],
+  'Bono East':     ['Agrico Hub'],
+  'Savannah':      ['CRIS Hub'],
+  'Oti':           ['Developers Academy'],
+  'Ahafo':         ['Boabab Entrepreneurs','Ketiwa Enterprise'],
+  'North East':    ['Innovation Light LGB','Northern Innovation Lab Foundation'],
+  'Western North': ['His Majesty Farms','Rutab Hub','Wislaw Educational Fund']
+};
+
+function filterHubs(zone){
+  const sel=document.getElementById('hubName');
+  sel.innerHTML='';
+  if(!zone){sel.innerHTML='<option value="">Select zone first…</option>';return;}
+  const hubs=HUBS_BY_REGION[zone]||[];
+  if(!hubs.length){sel.innerHTML='<option value="">No hubs registered for this zone yet</option>';return;}
+  sel.innerHTML='<option value="">Select hub…</option>';
+  hubs.forEach(name=>{
+    const o=document.createElement('option');
+    o.value=name;o.textContent=name;sel.appendChild(o);
+  });
+  const oth=document.createElement('option');
+  oth.value='Other — specify below';oth.textContent='Other — specify below';
+  sel.appendChild(oth);
+}
 
 // ── DATA DEFINITIONS ──
 const ATT_ITEMS=[
@@ -666,6 +670,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
   buildRatingStars();
   for(let i=0;i<2;i++) addPartnerRow();
   document.getElementById('visitDate').value=new Date().toISOString().split('T')[0];
+  // Wire zone selector to filter hub dropdown
+  document.getElementById('fpZone').addEventListener('change', function(){ filterHubs(this.value); });
+  filterHubs(''); // initialise to empty state
   try{await initDB();renderSavedRegistry();}catch(e){showToast('Local storage unavailable: '+e,'warn');}
   window.addEventListener('online',onNetChange);
   window.addEventListener('offline',onNetChange);
