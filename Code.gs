@@ -47,8 +47,9 @@ function handleSubmitWithLinks(p) {
   var driveLinks = p.driveLinks || {};
   var totalFiles = p.totalFiles || 0;
 
-  // 1. Append row to master Google Sheet (like Google Forms)
+  // 1. Append row to master Google Sheet AND to the hub-specific sheet
   var sheetUrl = appendToMasterSheet(d, driveLinks, totalFiles);
+  appendToHubSheet(d, driveLinks);
 
   // 2. Build file links HTML for email
   var fileLinksHtml = buildFileLinksHtml(driveLinks);
@@ -74,13 +75,171 @@ function handleSubmitWithLinks(p) {
 function handleLegacy(payload) {
   var d        = payload.formData || {};
   var sheetUrl = appendToMasterSheet(d, {}, 0);
+  appendToHubSheet(d, {});
   var htmlBody = buildEmailHtml(d, '<p style="color:#718096;font-style:italic">No files attached.</p>', sheetUrl);
   var subject  = 'YiW Field Report: ' + (d.fpName||'--') + ' (' + (d.visitDate||'--') + ')';
   MailApp.sendEmail({ to:TO_EMAIL, cc:CC_EMAILS, subject:subject, htmlBody:htmlBody });
   return jsonOut({ status:'success', message:'Report submitted.' });
 }
 
-// ── MASTER SHEET LOG ─────────────────────────────────────────
+// ── HUB-SPECIFIC SHEET ───────────────────────────────────────
+// Each TSP/Hub gets its own tab in the master workbook.
+// All focal persons reporting for that hub write to the same tab.
+// Every column header has auto-filter enabled so data can be sorted.
+function appendToHubSheet(d, driveLinks) {
+  try {
+    // Open (or create) the same master workbook
+    var ss;
+    var files = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!files.hasNext()) return; // master sheet must exist first
+    ss = SpreadsheetApp.open(files.next());
+
+    var hubName = (d.hubName || 'Unknown Hub').toString().trim();
+    // Sheet names max 100 chars, no special chars
+    var sheetName = hubName.length > 95 ? hubName.substring(0, 95) : hubName;
+
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      formatHubSheet(sheet, hubName);
+    }
+
+    // If somehow the header row is missing, add it
+    if (sheet.getLastRow() === 0) {
+      formatHubSheet(sheet, hubName);
+    }
+
+    var fileCounts = countDriveLinks(driveLinks);
+    var partners   = d.partners || [];
+    var allFileUrls = [];
+    ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'].forEach(function(cat){
+      (driveLinks[cat]||[]).forEach(function(f){ allFileUrls.push(f.name+': '+f.url); });
+    });
+
+    var row = [
+      new Date(),
+      d.fpName          || '',
+      d.fpPhone         || '',
+      d.fpEmail         || '',
+      d.fpZone          || '',
+      d.visitDate       || '',
+      d.visitType       || '',
+      d.community       || '',
+      d.trainingCentre  || '',
+      d.hubContact      || '',
+      d.hubContactPhone || '',
+      d.tArr            || '',
+      d.tDep            || '',
+      // Attendance
+      d.cMale    || 0,
+      d.cFemale  || 0,
+      d.cPWD     || 0,
+      d.cStaff   || 0,
+      d.cTrainer || 0,
+      (d.cMale||0)+(d.cFemale||0)+(d.cPWD||0),
+      // Activation
+      d.aJobs    || 0,
+      d.aIntern  || 0,
+      d.aCoop    || 0,
+      d.aRef     || 0,
+      (d.aJobs||0)+(d.aIntern||0)+(d.aCoop||0)+(d.aRef||0),
+      d.enrolM       || 0,
+      d.enrolF       || 0,
+      d.enrolCourse  || '',
+      d.empName      || '',
+      d.empSector    || '',
+      // Quality
+      d.rating || '',
+      (d.quality    ||[]).join('; '),
+      (d.issues     ||[]).join('; '),
+      (d.facilities ||[]).join('; '),
+      (d.activities ||[]).join('; '),
+      d.challenges      || '',
+      d.recommendations || '',
+      d.urgency         || '',
+      d.followUpBy      || '',
+      // Partners
+      partners.length,
+      partners.map(function(p){ return p.name+(p.status?' ('+p.status+')':''); }).join('; '),
+      partners.map(function(p){ return p.skillsNeeded||''; }).join('; '),
+      // Files
+      fileCounts.total,
+      allFileUrls.join(' | '),
+      // Safeguarding
+      (d.safeChecked||[]).length,
+      d.safeConcern === 'yes' ? 'YES' : 'No',
+      d.safeTxt || '',
+      // Narrative
+      d.highlight  || '',
+      d.yVoice     || '',
+      d.finalNotes || ''
+    ];
+
+    sheet.appendRow(row);
+
+    // Alternate row shading
+    var lastRow = sheet.getLastRow();
+    if (lastRow % 2 === 0) {
+      sheet.getRange(lastRow, 1, 1, row.length).setBackground('#f0f4f0');
+    }
+
+    SpreadsheetApp.flush();
+    Logger.log('Hub sheet updated: ' + sheetName + ' row ' + lastRow);
+
+  } catch(err) {
+    Logger.log('Hub sheet error: ' + err.toString());
+  }
+}
+
+function formatHubSheet(sheet, hubName) {
+  var headers = [
+    'Submitted At','FP Name','FP Phone','FP Email','Zone',
+    'Visit Date','Visit Type','Community','Training Centre',
+    'Centre Contact','Contact Phone','Time Arrived','Time Departed',
+    'Young Men','Young Women','PWD','Staff','Trainers','Total Youth',
+    'Formal Jobs','Internships','Cooperatives','Further Training','Total Activations',
+    'Enrolments (M)','Enrolments (F)','Course / Trade','Employer','Sector',
+    'Hub Rating','Quality Indicators','Issues Flagged','Facilities','Activities',
+    'Challenges','Recommendations','Urgency','Follow-up By',
+    'Partners Count','Partner Names','Skills Requested',
+    'Total Files','File Links',
+    'Safeguarding Confirmed','Concern Raised','Concern Detail',
+    'Success Story','Youth Voice','Final Notes'
+  ];
+
+  // Title row showing hub name
+  sheet.getRange(1, 1, 1, headers.length).merge()
+       .setValue(hubName + ' — YiW Field Reports')
+       .setBackground('#1a5c2a')
+       .setFontColor('#ffffff')
+       .setFontWeight('bold')
+       .setFontSize(12);
+
+  // Header row
+  var headerRange = sheet.getRange(2, 1, 1, headers.length);
+  headerRange.setValues([headers]);
+  headerRange.setBackground('#2d7a3a');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontSize(10);
+  headerRange.setWrap(false);
+
+  // Freeze title + header rows, apply auto-filter for sorting
+  sheet.setFrozenRows(2);
+  sheet.getRange(2, 1, 1, headers.length).createFilter();
+
+  // Column widths
+  sheet.setColumnWidth(1,  160); // Submitted At
+  sheet.setColumnWidth(2,  140); // FP Name
+  sheet.setColumnWidth(6,  100); // Visit Date
+  sheet.setColumnWidth(8,  120); // Community
+  sheet.setColumnWidth(9,  170); // Training Centre
+  sheet.setColumnWidth(31, 220); // Quality
+  sheet.setColumnWidth(32, 200); // Issues
+  sheet.setColumnWidth(35, 260); // Challenges
+  sheet.setColumnWidth(36, 260); // Recommendations
+  sheet.setColumnWidth(42, 300); // File links
+}
 // One permanent Google Sheet — one row per submission, exactly like Google Forms.
 // Returns the sheet URL so it can be linked in the email.
 function appendToMasterSheet(d, driveLinks, totalFiles) {
@@ -231,8 +390,8 @@ function formatMasterSheet(sheet) {
   headerRange.setFontSize(10);
   headerRange.setWrap(false);
   sheet.setFrozenRows(1);
-
-  // Key column widths
+  // Auto-filter enables clicking any column header to sort
+  sheet.getRange(1, 1, 1, headers.length).createFilter();
   sheet.setColumnWidth(1,  160); // Submitted At
   sheet.setColumnWidth(2,  140); // FP Name
   sheet.setColumnWidth(8,  220); // Hub
