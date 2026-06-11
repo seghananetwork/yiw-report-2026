@@ -47,87 +47,95 @@ function handleSubmitWithLinks(p) {
   var driveLinks = p.driveLinks || {};
   var totalFiles = p.totalFiles || 0;
 
-  // 1. Build file links HTML for email
+  // 1. Append row to master Google Sheet (like Google Forms)
+  var sheetUrl = appendToMasterSheet(d, driveLinks, totalFiles);
+
+  // 2. Build file links HTML for email
   var fileLinksHtml = buildFileLinksHtml(driveLinks);
 
-  // 2. Build and send HTML email
-  var htmlBody = buildEmailHtml(d, fileLinksHtml);
-  var subject  = 'YiW Field Report: ' + (d.fpName||'—') +
-                 ' — ' + (d.trainingCentre||d.hubName||'—') +
-                 ' (' + (d.visitDate||'—') + ')';
-
-  // 3. Build per-report Excel sheet and attach it
-  var xlsxBlob = buildReportExcel(d, driveLinks);
+  // 3. Build and send HTML email — includes link to master sheet
+  var htmlBody = buildEmailHtml(d, fileLinksHtml, sheetUrl);
+  var subject  = 'YiW Field Report: ' + (d.fpName||'--') +
+                 ' -- ' + (d.trainingCentre||d.hubName||'--') +
+                 ' (' + (d.visitDate||'--') + ')';
 
   MailApp.sendEmail({
-    to:          TO_EMAIL,
-    cc:          CC_EMAILS,
-    subject:     subject,
-    htmlBody:    htmlBody,
-    attachments: [xlsxBlob]
+    to:       TO_EMAIL,
+    cc:       CC_EMAILS,
+    subject:  subject,
+    htmlBody: htmlBody
   });
 
-  // 4. Append row to master Google Sheet log
-  appendToMasterSheet(d, driveLinks, totalFiles);
-
   Logger.log('Done: ' + subject);
-  return jsonOut({ status:'success', message:'Report emailed with Excel attachment.' });
+  return jsonOut({ status:'success', message:'Report submitted. Sheet updated.' });
 }
 
 // ── LEGACY FALLBACK ──────────────────────────────────────────
 function handleLegacy(payload) {
-  var d = payload.formData || {};
-  var htmlBody = buildEmailHtml(d, '<p style="color:#718096;font-style:italic">No files attached.</p>');
-  var subject  = 'YiW Field Report: ' + (d.fpName||'—') + ' (' + (d.visitDate||'—') + ')';
-  var xlsxBlob = buildReportExcel(d, {});
-  MailApp.sendEmail({ to:TO_EMAIL, cc:CC_EMAILS, subject:subject, htmlBody:htmlBody, attachments:[xlsxBlob] });
-  appendToMasterSheet(d, {}, 0);
+  var d        = payload.formData || {};
+  var sheetUrl = appendToMasterSheet(d, {}, 0);
+  var htmlBody = buildEmailHtml(d, '<p style="color:#718096;font-style:italic">No files attached.</p>', sheetUrl);
+  var subject  = 'YiW Field Report: ' + (d.fpName||'--') + ' (' + (d.visitDate||'--') + ')';
+  MailApp.sendEmail({ to:TO_EMAIL, cc:CC_EMAILS, subject:subject, htmlBody:htmlBody });
   return jsonOut({ status:'success', message:'Report submitted.' });
 }
 
 // ── MASTER SHEET LOG ─────────────────────────────────────────
-// One row per submission in a persistent Google Sheet.
-// All recipients can open this sheet to see all submissions in one place.
+// One permanent Google Sheet — one row per submission, exactly like Google Forms.
+// Returns the sheet URL so it can be linked in the email.
 function appendToMasterSheet(d, driveLinks, totalFiles) {
   try {
     var ss;
+    var sheetUrl = '';
     var files = DriveApp.getFilesByName(MASTER_SHEET_NAME);
     if (files.hasNext()) {
-      ss = SpreadsheetApp.open(files.next());
+      var f = files.next();
+      ss = SpreadsheetApp.open(f);
+      sheetUrl = f.getUrl();
     } else {
       ss = SpreadsheetApp.create(MASTER_SHEET_NAME);
-      var sheet = ss.getActiveSheet();
-      sheet.setName('Field Reports');
-      formatMasterSheet(sheet);
+      // Share with all recipients so they can open it directly
+      var newFile = DriveApp.getFileById(ss.getId());
+      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      sheetUrl = newFile.getUrl();
     }
 
-    var sheet = ss.getSheetByName('Field Reports') || ss.getActiveSheet();
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet) {
+      sheet = ss.getActiveSheet();
+      sheet.setName('Field Reports');
+    }
 
     // Add header row if sheet is empty
     if (sheet.getLastRow() === 0) {
       formatMasterSheet(sheet);
     }
 
-    // Count drive files
     var fileCounts = countDriveLinks(driveLinks);
     var partners   = d.partners || [];
 
-    var row = [
+    // Build all Drive file URLs as a single string for the sheet
+    var allFileUrls = [];
+    ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'].forEach(function(cat){
+      (driveLinks[cat]||[]).forEach(function(f){ allFileUrls.push(f.name + ': ' + f.url); });
+    });
+
+    var dataRow = [
       new Date(),
-      d.fpName        || '',
-      d.fpPhone       || '',
-      d.fpEmail       || '',
-      d.fpZone        || '',
-      d.visitDate     || '',
-      d.visitType     || '',
-      d.hubName       || '',
-      d.community     || '',
-      d.trainingCentre|| '',
-      d.centreAddress || '',
-      d.hubContact    || '',
-      d.hubContactPhone||'',
-      d.tArr          || '',
-      d.tDep          || '',
+      d.fpName         || '',
+      d.fpPhone        || '',
+      d.fpEmail        || '',
+      d.fpZone         || '',
+      d.visitDate      || '',
+      d.visitType      || '',
+      d.hubName        || '',
+      d.community      || '',
+      d.trainingCentre || '',
+      d.centreAddress  || '',
+      d.hubContact     || '',
+      d.hubContactPhone|| '',
+      d.tArr           || '',
+      d.tDep           || '',
       // Attendance
       d.cMale    || 0,
       d.cFemale  || 0,
@@ -141,24 +149,25 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
       d.aCoop    || 0,
       d.aRef     || 0,
       (d.aJobs||0)+(d.aIntern||0)+(d.aCoop||0)+(d.aRef||0),
-      d.enrolM   || 0,
-      d.enrolF   || 0,
+      d.enrolM      || 0,
+      d.enrolF      || 0,
       d.enrolCourse || '',
-      d.empName  || '',
-      d.empSector|| '',
+      d.empName     || '',
+      d.empSector   || '',
       // Quality
-      d.rating   || '',
-      (d.quality     ||[]).join('; '),
-      (d.issues      ||[]).join('; '),
-      (d.facilities  ||[]).join('; '),
-      (d.activities  ||[]).join('; '),
+      d.rating || '',
+      (d.quality    ||[]).join('; '),
+      (d.issues     ||[]).join('; '),
+      (d.facilities ||[]).join('; '),
+      (d.activities ||[]).join('; '),
       d.challenges      || '',
       d.recommendations || '',
       d.urgency         || '',
       d.followUpBy      || '',
       // Partners
       partners.length,
-      partners.map(function(p){ return p.name+(p.status?' ('+p.status+')':''); }).join('; '),
+      partners.map(function(p){ return p.name + (p.status?' ('+p.status+')':''); }).join('; '),
+      partners.map(function(p){ return p.skillsNeeded||''; }).join('; '),
       // Files
       fileCounts.total,
       fileCounts.dAtt,
@@ -167,33 +176,33 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
       fileCounts.dTrack,
       fileCounts.mPhoto,
       fileCounts.mVideo,
+      allFileUrls.join(' | '),
       // Safeguarding
       (d.safeChecked||[]).length,
       (d.safeChecked||[]).join('; '),
       d.safeConcern === 'yes' ? 'YES' : 'No',
-      d.safeTxt  || '',
+      d.safeTxt || '',
       // Narrative
-      d.highlight   || '',
-      d.yVoice      || '',
-      d.finalNotes  || ''
+      d.highlight  || '',
+      d.yVoice     || '',
+      d.finalNotes || ''
     ];
 
-    sheet.appendRow(row);
+    sheet.appendRow(dataRow);
 
-    // Style the new row alternating
+    // Alternate row shading
     var lastRow = sheet.getLastRow();
     if (lastRow % 2 === 0) {
-      sheet.getRange(lastRow, 1, 1, row.length).setBackground('#f8fafc');
+      sheet.getRange(lastRow, 1, 1, dataRow.length).setBackground('#f0f4f0');
     }
 
-    // Auto-resize columns periodically
-    if (lastRow % 10 === 0) {
-      sheet.autoResizeColumns(1, row.length);
-    }
+    SpreadsheetApp.flush();
+    Logger.log('Master sheet updated: row ' + lastRow + ' | URL: ' + sheetUrl);
+    return sheetUrl;
 
-    Logger.log('Master sheet updated: row ' + lastRow);
   } catch(err) {
     Logger.log('Master sheet error: ' + err.toString());
+    return '';
   }
 }
 
@@ -204,277 +213,37 @@ function formatMasterSheet(sheet) {
     'Centre Address','Centre Contact','Contact Phone','Time Arrived','Time Departed',
     'Young Men','Young Women','PWD','Staff','Trainers','Total Youth',
     'Formal Jobs','Internships','Cooperatives','Further Training','Total Activations',
-    'Enrolments (M)','Enrolments (F)','Course','Employer','Sector',
+    'Enrolments (M)','Enrolments (F)','Course / Trade','Employer','Sector',
     'Hub Rating','Quality Indicators','Issues Flagged','Facilities','Activities',
     'Challenges','Recommendations','Urgency','Follow-up By',
-    'Partners Count','Partner Names & Status',
-    'Total Files','Attendance Docs','Financial Docs','MoUs','Tracking Sheets','Photos','Videos',
-    'Safeguarding Items','Safeguarding Details','Concern Raised','Concern Detail',
+    'Partners Count','Partner Names & Status','Skills Requested by Partners',
+    'Total Files','Attendance Docs','Financial Docs','MoUs','Tracking Sheets','Photos','Videos','File Links',
+    'Safeguarding Items Confirmed','Safeguarding Details','Concern Raised','Concern Detail',
     'Success Story','Youth Voice','Final Notes'
   ];
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
-  // Header styling — dark green
   var headerRange = sheet.getRange(1, 1, 1, headers.length);
   headerRange.setBackground('#1a5c2a');
   headerRange.setFontColor('#ffffff');
   headerRange.setFontWeight('bold');
   headerRange.setFontSize(10);
   headerRange.setWrap(false);
-
-  // Freeze header row
   sheet.setFrozenRows(1);
 
-  // Set column widths for key columns
-  sheet.setColumnWidth(1, 150);  // Submitted At
-  sheet.setColumnWidth(2, 140);  // FP Name
-  sheet.setColumnWidth(8, 200);  // Hub
-  sheet.setColumnWidth(9, 120);  // Community
-  sheet.setColumnWidth(10, 160); // Training Centre
+  // Key column widths
+  sheet.setColumnWidth(1,  160); // Submitted At
+  sheet.setColumnWidth(2,  140); // FP Name
+  sheet.setColumnWidth(8,  220); // Hub
+  sheet.setColumnWidth(9,  120); // Community
+  sheet.setColumnWidth(10, 170); // Training Centre
   sheet.setColumnWidth(33, 220); // Quality
   sheet.setColumnWidth(34, 200); // Issues
-  sheet.setColumnWidth(36, 250); // Challenges
-  sheet.setColumnWidth(37, 250); // Recommendations
-}
-
-// ── PER-REPORT EXCEL EXPORT ──────────────────────────────────
-// Creates a nicely formatted spreadsheet for this one report,
-// exports it as .xlsx and returns it as a blob to attach to email.
-function buildReportExcel(d, driveLinks) {
-  try {
-    var ss        = SpreadsheetApp.create('YiW_TempReport_' + new Date().getTime());
-    var sheet     = ss.getActiveSheet();
-    sheet.setName('Field Report');
-
-    // ── TITLE BLOCK ──
-    sheet.getRange('A1').setValue('SEG GHANA - YOUTH IN WORK PROGRAMME');
-    sheet.getRange('A1').setFontSize(14).setFontWeight('bold').setFontColor('#1a5c2a');
-    sheet.getRange('A1:H1').merge();
-
-    sheet.getRange('A2').setValue('DAILY FIELD REPORT');
-    sheet.getRange('A2').setFontSize(11).setFontColor('#2d7a3a').setFontWeight('bold');
-    sheet.getRange('A2:H2').merge();
-
-    sheet.getRange('A3').setValue('Generated: ' + new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'}));
-    sheet.getRange('A3').setFontSize(9).setFontColor('#718096');
-    sheet.getRange('A3:H3').merge();
-
-    // Title background
-    sheet.getRange('A1:H3').setBackground('#e8f5eb');
-
-    var row = 5;
-
-    // ── SECTION HELPER ──
-    function sectionHeader(title, color) {
-      sheet.getRange(row, 1, 1, 8).merge()
-           .setValue(title)
-           .setBackground(color||'#1a5c2a')
-           .setFontColor('#ffffff')
-           .setFontWeight('bold')
-           .setFontSize(10);
-      row++;
-    }
-
-    function dataRow(label, value, labelBg, valueBg) {
-      var lCell = sheet.getRange(row, 1, 1, 3);
-      var vCell = sheet.getRange(row, 4, 1, 5);
-      lCell.merge().setValue(label)
-           .setBackground(labelBg||'#f8fafc')
-           .setFontWeight('bold').setFontSize(9).setFontColor('#4a5568');
-      vCell.merge().setValue(value||'—')
-           .setBackground(valueBg||'#ffffff')
-           .setFontSize(9).setFontColor('#1a1a2e');
-      row++;
-    }
-
-    function statRow(labels, values, bg, color) {
-      for (var i=0; i<labels.length; i++) {
-        sheet.getRange(row, i+1).setValue(labels[i])
-             .setBackground('#f8fafc').setFontWeight('bold')
-             .setFontSize(9).setFontColor('#718096').setHorizontalAlignment('center');
-      }
-      row++;
-      for (var j=0; j<values.length; j++) {
-        sheet.getRange(row, j+1).setValue(values[j]||0)
-             .setBackground(bg||'#e8f5eb').setFontWeight('bold')
-             .setFontSize(13).setFontColor(color||'#1a5c2a').setHorizontalAlignment('center');
-      }
-      row+=2;
-    }
-
-    // ── SECTION 1: FOCAL PERSON & VISIT ──
-    sectionHeader('FOCAL PERSON & VISIT DETAILS', '#1a5c2a');
-    dataRow('Focal Person Name', d.fpName);
-    dataRow('Phone', d.fpPhone);
-    dataRow('Email', d.fpEmail);
-    dataRow('Zone / Region', d.fpZone);
-    dataRow('Date of Visit', d.visitDate);
-    dataRow('Visit Type', d.visitType);
-    dataRow('Hub / TSP', d.hubName);
-    dataRow('Community', d.community);
-    dataRow('Training Centre', d.trainingCentre);
-    dataRow('Centre Address', d.centreAddress);
-    dataRow('Centre Contact', (d.hubContact||'') + (d.hubContactPhone?' - '+d.hubContactPhone:''));
-    dataRow('Time on Site', (d.tArr||'--') + '  to  ' + (d.tDep||'--'));
-    row++;
-
-    // ── SECTION 2: ATTENDANCE ──
-    sectionHeader('ATTENDANCE COUNT', '#b8860b');
-    statRow(
-      ['Young Men','Young Women','Persons with Disability','Hub Staff','Trainers / Facilitators'],
-      [d.cMale, d.cFemale, d.cPWD, d.cStaff, d.cTrainer],
-      '#fff8e1','#b8860b'
-    );
-
-    // ── SECTION 3: ACTIVATION ──
-    sectionHeader('ACTIVATION & EMPLOYMENT OUTCOMES', '#2d7a3a');
-    statRow(
-      ['Formal Employment','Internships','Cooperatives','Referred for Training'],
-      [d.aJobs, d.aIntern, d.aCoop, d.aRef],
-      '#e8f5eb','#1a5c2a'
-    );
-    dataRow('New Enrolments (Male)', d.enrolM||0);
-    dataRow('New Enrolments (Female)', d.enrolF||0);
-    dataRow('Course / Trade', d.enrolCourse);
-    dataRow('Employer / Cooperative', (d.empName||'') + (d.empSector?' ('+d.empSector+')':''));
-    dataRow('Youth Placed (names)', d.youthNames);
-    dataRow('Success Story / Highlight', d.highlight);
-    dataRow('Youth Voice / Quote', d.yVoice);
-    row++;
-
-    // ── SECTION 4: HUB QUALITY ──
-    sectionHeader('TRAINING CENTRE QUALITY & COMPLIANCE', '#00695c');
-    dataRow('Overall Rating', d.rating ? d.rating+'/5' : '--');
-    dataRow('Quality Indicators', (d.quality||[]).join(', '));
-    dataRow('Issues Flagged', (d.issues||[]).join(', '));
-    dataRow('Activities Observed', (d.activities||[]).join(', '));
-    dataRow('Facilities Available', (d.facilities||[]).join(', '));
-    dataRow('Challenges', d.challenges);
-    dataRow('Recommendations', d.recommendations);
-    dataRow('Urgency of Action', d.urgency);
-    dataRow('Follow-up By', d.followUpBy);
-    row++;
-
-    // ── SECTION 5: PARTNER ENGAGEMENT ──
-    sectionHeader('PARTNER ENGAGEMENT', '#1565c0');
-    var partners = d.partners || [];
-    if (partners.length > 0) {
-      var pHeaders = ['Company','Location','Sector','Business Profile','Skills Needed','Contact','Phone','Status','Slots'];
-      pHeaders.forEach(function(h,i){
-        sheet.getRange(row, i+1).setValue(h)
-             .setBackground('#e3f2fd').setFontWeight('bold')
-             .setFontSize(9).setFontColor('#1565c0');
-      });
-      row++;
-      partners.forEach(function(p){
-        var vals = [p.name,p.location,p.sector,p.profile,p.skillsNeeded,p.contact,p.phone,p.status,p.slots||0];
-        vals.forEach(function(v,i){
-          sheet.getRange(row, i+1).setValue(v||'')
-               .setFontSize(9).setBackground('#f8fafc');
-        });
-        row++;
-      });
-    } else {
-      dataRow('Partners', 'No partner companies logged for this visit.');
-    }
-    dataRow('Partner Notes', d.partnerNotes);
-    dataRow('Next Engagement Date', d.nextPDate);
-    row++;
-
-    // ── SECTION 6: DOCUMENTS & MEDIA ──
-    sectionHeader('DOCUMENTS & MEDIA UPLOADED', '#6a1b9a');
-    var fc = countDriveLinks(driveLinks);
-    dataRow('Attendance Sheets', fc.dAtt + ' file(s)');
-    dataRow('Financial Documents', fc.dFin + ' file(s)');
-    dataRow('MoUs / Agreements', fc.dMou + ' file(s)');
-    dataRow('Tracking Sheets', fc.dTrack + ' file(s)');
-    dataRow('Photos', fc.mPhoto + ' file(s)');
-    dataRow('Videos', fc.mVideo + ' file(s)');
-    dataRow('Total Files', fc.total + ' file(s)');
-    dataRow('Document Notes', d.docNotes);
-    dataRow('Photo Caption', d.photoCaption);
-    dataRow('Video Description', d.videoCaption);
-    dataRow('Media Context', d.mediaContext);
-
-    var catOrder = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
-    var catNames = {dAtt:'Attendance',dFin:'Financial',dMou:'MoU',dTrack:'Tracking',mPhoto:'Photo',mVideo:'Video'};
-    catOrder.forEach(function(cat){
-      var files = driveLinks[cat]||[];
-      files.forEach(function(f){
-        sheet.getRange(row,1,1,2).merge().setValue(catNames[cat]||cat)
-             .setBackground('#f8fafc').setFontWeight('bold').setFontSize(9).setFontColor('#6a1b9a');
-        sheet.getRange(row,3,1,6).merge().setValue(f.url||f.name||'')
-             .setFontSize(9).setFontColor('#1565c0');
-        row++;
-      });
-    });
-    row++;
-
-    // ── SECTION 7: SAFEGUARDING ──
-    sectionHeader('SAFEGUARDING', '#00695c');
-    dataRow('Items Confirmed', (d.safeChecked||[]).length + ' of 8');
-    dataRow('Confirmed Items', (d.safeChecked||[]).join(', '));
-    dataRow('Concern Raised?', d.safeConcern==='yes' ? 'YES' : 'No');
-    if (d.safeConcern==='yes') {
-      dataRow('Concern Details', d.safeTxt, '#fff0f0', '#fff8f8');
-      dataRow('Action Taken',    d.safeAct, '#fff0f0', '#fff8f8');
-      dataRow('Reported To',     d.safeRep, '#fff0f0', '#fff8f8');
-    }
-    dataRow('Safeguarding Notes', d.safeNotes);
-    row++;
-
-    // ── SECTION 8: ADDITIONAL NOTES ──
-    if (d.finalNotes) {
-      sectionHeader('ADDITIONAL NOTES', '#455a64');
-      dataRow('Notes', d.finalNotes);
-    }
-
-    // ── FORMATTING FINAL TOUCHES ──
-    sheet.setColumnWidth(1, 190);
-    sheet.setColumnWidth(2, 10);
-    sheet.setColumnWidth(3, 10);
-    sheet.setColumnWidth(4, 320);
-    sheet.setColumnWidth(5, 10);
-    sheet.setColumnWidth(6, 10);
-    sheet.setColumnWidth(7, 10);
-    sheet.setColumnWidth(8, 10);
-    sheet.getRange(1, 1, row, 8).setWrap(true).setVerticalAlignment('middle');
-
-    // CRITICAL: flush() forces all pending Sheets writes to disk
-    // before we attempt to export — without this the sheet exports blank
-    SpreadsheetApp.flush();
-    Utilities.sleep(2000); // extra safety buffer for large reports
-
-    // Export as XLSX
-    var ssId  = ss.getId();
-    var exportUrl = 'https://docs.google.com/spreadsheets/d/' + ssId +
-                    '/export?format=xlsx&id=' + ssId;
-    var token = ScriptApp.getOAuthToken();
-    var resp  = UrlFetchApp.fetch(exportUrl, {
-      headers: { Authorization: 'Bearer ' + token },
-      muteHttpExceptions: true
-    });
-
-    if (resp.getResponseCode() !== 200) {
-      throw new Error('Export failed with HTTP ' + resp.getResponseCode());
-    }
-
-    var xlsx = resp.getBlob().setName(
-      'YiW_Report_' + (d.fpName||'Unknown').replace(/\s+/g,'_') +
-      '_' + (d.visitDate||'nodate') + '.xlsx'
-    );
-
-    // Clean up temp spreadsheet
-    try { DriveApp.getFileById(ssId).setTrashed(true); } catch(e) {}
-
-    return xlsx;
-
-  } catch(err) {
-    Logger.log('Excel build error: ' + err.toString());
-    // Return empty blob so email still sends
-    return Utilities.newBlob('Excel generation failed: '+err, 'text/plain', 'report_error.txt');
-  }
+  sheet.setColumnWidth(36, 260); // Challenges
+  sheet.setColumnWidth(37, 260); // Recommendations
+  sheet.setColumnWidth(42, 200); // Skills requested
+  sheet.setColumnWidth(50, 300); // File links
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -517,7 +286,7 @@ function jsonOut(obj) {
 function safe(val) { return val || '—'; }
 
 // ── BUILD HTML EMAIL ─────────────────────────────────────────
-function buildEmailHtml(d, fileLinksHtml) {
+function buildEmailHtml(d, fileLinksHtml, sheetUrl) {
 
   function pills(arr, bg, color) {
     if (!arr || arr.length===0) return '<em style="color:#718096">None</em>';
@@ -590,10 +359,21 @@ function buildEmailHtml(d, fileLinksHtml) {
 
   '<div style="padding:20px">'+
 
-  // NOTE ABOUT EXCEL
+  // MASTER SHEET LINK — prominent banner
+  (sheetUrl ?
+    '<div style="background:#1a5c2a;border-radius:9px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'+
+      '<div>'+
+        '<div style="color:#fff;font-weight:700;font-size:13px">View & Download Master Data Sheet</div>'+
+        '<div style="color:rgba(255,255,255,.75);font-size:11px;margin-top:2px">All submissions in one Google Sheet — download as Excel anytime</div>'+
+      '</div>'+
+      '<a href="'+sheetUrl+'" style="display:inline-block;background:#fff;color:#1a5c2a;font-weight:700;font-size:12px;padding:8px 16px;border-radius:6px;text-decoration:none">Open Sheet &rarr;</a>'+
+    '</div>'
+  : '') +
+
+  // NOTE ABOUT MASTER SHEET
   '<div style="background:#e8f5eb;border:1px solid #a5d6a7;border-radius:8px;padding:10px 13px;font-size:12px;color:#1a3a1a;margin-bottom:14px">'+
-    '📊 <strong>Excel report attached</strong> — a formatted spreadsheet with all report data is attached to this email.'+
-    ' The master log sheet is also updated automatically.'+
+    '📊 <strong>Master data sheet updated</strong> — this report has been added to the central Google Sheet. '+
+    'Open the sheet above and go to <strong>File → Download → Microsoft Excel (.xlsx)</strong> to export all submissions.'+
   '</div>'+
 
   // VISIT DETAILS
