@@ -47,6 +47,15 @@ function handleSubmitWithLinks(p) {
   var driveLinks = p.driveLinks || {};
   var totalFiles = p.totalFiles || 0;
 
+  // Defensive sanitisation — guard every array field against undefined/null
+  // (old drafts or partial submissions may be missing these)
+  d.quality     = Array.isArray(d.quality)     ? d.quality     : [];
+  d.issues      = Array.isArray(d.issues)       ? d.issues      : [];
+  d.facilities  = Array.isArray(d.facilities)   ? d.facilities  : [];
+  d.activities  = Array.isArray(d.activities)   ? d.activities  : [];
+  d.partners    = Array.isArray(d.partners)     ? d.partners    : [];
+  d.safeChecked = Array.isArray(d.safeChecked)  ? d.safeChecked : [];
+
   // 1. Append row to master Google Sheet AND to the hub-specific sheet
   var sheetUrl = appendToMasterSheet(d, driveLinks, totalFiles);
   appendToHubSheet(d, driveLinks);
@@ -73,7 +82,13 @@ function handleSubmitWithLinks(p) {
 
 // ── LEGACY FALLBACK ──────────────────────────────────────────
 function handleLegacy(payload) {
-  var d        = payload.formData || {};
+  var d = payload.formData || {};
+  d.quality     = Array.isArray(d.quality)     ? d.quality     : [];
+  d.issues      = Array.isArray(d.issues)       ? d.issues      : [];
+  d.facilities  = Array.isArray(d.facilities)   ? d.facilities  : [];
+  d.activities  = Array.isArray(d.activities)   ? d.activities  : [];
+  d.partners    = Array.isArray(d.partners)     ? d.partners    : [];
+  d.safeChecked = Array.isArray(d.safeChecked)  ? d.safeChecked : [];
   var sheetUrl = appendToMasterSheet(d, {}, 0);
   appendToHubSheet(d, {});
   var htmlBody = buildEmailHtml(d, '<p style="color:#718096;font-style:italic">No files attached.</p>', sheetUrl);
