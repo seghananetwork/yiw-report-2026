@@ -22,7 +22,7 @@ var CC_EMAILS = [
 
 // ── DRIVE / SHEETS CONFIG ────────────────────────────────────
 var ROOT_FOLDER_NAME  = "Youth in Work Field Reports Files";
-var MASTER_SHEET_NAME = "YiW Daily Field Reports — Master Log";
+var MASTER_SHEET_NAME = "YiW Daily Field Reports - Master Log";
 
 // ── ENTRY POINT ──────────────────────────────────────────────
 function doPost(e) {
@@ -39,6 +39,36 @@ function doPost(e) {
 
 function doGet(e) {
   return jsonOut({ status:'ok', message:'YiW Script is live.' });
+}
+
+// ── SERVER-SIDE SANITISE ─────────────────────────────────────
+// Called at the top of every handler — guarantees all array and
+// object fields exist before any .map() / .join() / .forEach() runs.
+function sanitise(d) {
+  if (!d) d = {};
+  var arrays = ['quality','issues','facilities','activities','safeChecked'];
+  arrays.forEach(function(k){
+    if (!Array.isArray(d[k])) d[k] = [];
+  });
+  if (!Array.isArray(d.partners)) {
+    d.partners = [];
+  } else {
+    d.partners = d.partners.map(function(p) {
+      if (!p || typeof p !== 'object') return {name:'',location:'',sector:'',profile:'',skillsNeeded:'',contact:'',phone:'',status:'',slots:0};
+      return {
+        name:         p.name         || '',
+        location:     p.location     || '',
+        sector:       p.sector       || '',
+        profile:      p.profile      || '',
+        skillsNeeded: p.skillsNeeded || '',
+        contact:      p.contact      || '',
+        phone:        p.phone        || '',
+        status:       p.status       || '',
+        slots:        parseInt(p.slots) || 0
+      };
+    });
+  }
+  return d;
 }
 
 // ── PRIMARY HANDLER ──────────────────────────────────────────
@@ -477,7 +507,7 @@ function buildEmailHtml(d, fileLinksHtml, sheetUrl) {
   }
 
   var rating    = parseInt(d.rating)||0;
-  var ratingStr = rating>0 ? ('★'.repeat(rating)+'☆'.repeat(5-rating)+' ('+rating+'/5)') : 'Not rated';
+  var ratingStr = rating > 0 ? (new Array(rating+1).join('★') + new Array(6-rating).join('☆') + ' (' + rating + '/5)') : 'Not rated';
   var ts        = new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'});
 
   var partnerRows = '';
