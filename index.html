@@ -1112,14 +1112,49 @@ async function attemptBackgroundSync(){
   showToast(`🔄 Syncing ${pending.length} pending report(s)…`);
   for(const rec of pending){
     try{
-      const files=rec.filesCache||{dAtt:[],dFin:[],dMou:[],dTrack:[],mPhoto:[],mVideo:[]};
-      const res=await fetch(SCRIPT_URL,{method:'POST',mode:'cors',body:JSON.stringify({id:rec.id,formData:rec.formData,files})});
-      const json=await res.json();
-      if(json.status==='success'){
-        rec.status='sent';delete rec.filesCache;delete rec.rawFiles;
+      const d=rec.formData||{};
+      // Sanitise all array fields in case they're missing from old drafts
+      d.quality    = Array.isArray(d.quality)    ? d.quality    : [];
+      d.issues     = Array.isArray(d.issues)      ? d.issues     : [];
+      d.facilities = Array.isArray(d.facilities)  ? d.facilities : [];
+      d.activities = Array.isArray(d.activities)  ? d.activities : [];
+      d.partners   = Array.isArray(d.partners)    ? d.partners   : [];
+      d.safeChecked= Array.isArray(d.safeChecked) ? d.safeChecked: [];
+      // Send without files (files from old pending drafts are gone)
+      const result=await uploadAndSubmit('YiW_retry_'+rec.id, d);
+      if(result&&result.status==='success'){
+        rec.status='sent';
         await dbWrite(rec);
       }
     }catch(e){console.error('Sync error:',rec.id,e);}
+  }
+  renderSavedRegistry();
+}
+
+// Manual retry for a single stuck report
+async function retrySingle(id){
+  const all=await dbGetAll();
+  const rec=all.find(r=>r.id===id);
+  if(!rec)return;
+  showToast('🔄 Retrying report…');
+  const d=rec.formData||{};
+  d.quality    = Array.isArray(d.quality)    ? d.quality    : [];
+  d.issues     = Array.isArray(d.issues)      ? d.issues     : [];
+  d.facilities = Array.isArray(d.facilities)  ? d.facilities : [];
+  d.activities = Array.isArray(d.activities)  ? d.activities : [];
+  d.partners   = Array.isArray(d.partners)    ? d.partners   : [];
+  d.safeChecked= Array.isArray(d.safeChecked) ? d.safeChecked: [];
+  try{
+    const result=await uploadAndSubmit('YiW_retry_'+id, d);
+    if(result&&result.status==='success'){
+      rec.status='sent';
+      await dbWrite(rec);
+      showToast('✅ Report sent successfully!','success');
+    } else {
+      showToast('⚠ Retry failed — '+((result&&result.message)||'unknown error'),'warn');
+    }
+  }catch(e){
+    showToast('⚠ Retry failed — '+e.message,'warn');
   }
   renderSavedRegistry();
 }
@@ -1131,14 +1166,22 @@ async function renderSavedRegistry(){
   const items=await dbGetAll();
   if(!items.length){el.innerHTML='<p style="font-size:12px;color:var(--t3);text-align:center;padding:10px">No saved reports yet.</p>';return;}
   items.sort((a,b)=>b.id-a.id);
-  el.innerHTML=items.map(r=>`
-    <div class="log-item">
+  el.innerHTML=items.map(r=>{
+    // Guard against old drafts with missing or malformed formData
+    const fd=r.formData||{};
+    const centre=fd.trainingCentre||fd.hubName||'Unnamed centre';
+    const name=fd.fpName||'—';
+    const zone=fd.fpZone||'—';
+    const isPending=r.status==='pending';
+    return `<div class="log-item">
       <div>
-        <strong style="font-size:13px">${r.formData.trainingCentre||'Unnamed centre'} — ${r.formData.fpName||'—'}</strong><br/>
-        <span style="font-size:10px;color:var(--t3)">${r.ts} · ${r.formData.fpZone||'—'}</span>
+        <strong style="font-size:13px">${centre} — ${name}</strong><br/>
+        <span style="font-size:10px;color:var(--t3)">${r.ts||''} · ${zone}</span>
       </div>
       <span class="spill ${r.status}">${r.status}</span>
-    </div>`).join('');
+      ${isPending&&navigator.onLine?`<button class="btn-draft" style="width:auto;padding:5px 10px;font-size:11px;margin:0" onclick="retrySingle(${r.id})">Retry</button>`:''}
+    </div>`;
+  }).join('');
 }
 
 // ── SUMMARY (Page 8) ──
