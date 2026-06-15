@@ -42,7 +42,534 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  return jsonOut({ status: 'ok', message: 'YiW Script is live.' });
+  var params = (e && e.parameter) ? e.parameter : {};
+  var action = params.action || '';
+
+  if (action === 'dashboard')     return getDashboardData();
+  if (action === 'hub')           return getHubData(params.hub || '');
+  if (action === 'deleteRow')     return deleteTestRow(params.rowIndex || '');
+  if (action === 'listRows')      return listAllRows();
+
+  return jsonOut({ status: 'ok', message: 'YiW Script is live.', version: 'v4-dashboard-2026-06-15' });
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  DASHBOARD — general overview data
+// ══════════════════════════════════════════════════════════════
+
+function getDashboardData() {
+  try {
+    var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!existing.hasNext()) return jsonOut({ status: 'error', message: 'No data yet. Submit your first report to get started.' });
+
+    var ss    = SpreadsheetApp.open(existing.next());
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status: 'error', message: 'No submissions yet.' });
+
+    var data = sheet.getDataRange().getValues();
+    var C = getColMap();
+    var now = new Date();
+    var thirtyDaysAgo = new Date(now.getTime() - 30*24*60*60*1000);
+
+    var totals = { reports:0, youth:0, men:0, women:0, pwd:0,
+                   jobs:0, interns:0, coops:0, furtherTraining:0, activations:0,
+                   partners:0, safetyConcerns:0 };
+
+    var byHub={}, byZone={}, byDate={};
+    var recentReports=[], urgentItems=[], lowRated=[], successStories=[];
+    var hubList = []; // ordered list of hub names
+
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
+      if (!row[C.fpName] && !row[C.hubName]) continue; // skip empty rows
+
+      totals.reports++;
+      totals.youth           += parseInt(row[C.totalYouth])        || 0;
+      totals.men             += parseInt(row[C.youngMen])          || 0;
+      totals.women           += parseInt(row[C.youngWomen])        || 0;
+      totals.pwd             += parseInt(row[C.pwd])               || 0;
+      totals.jobs            += parseInt(row[C.formalJobs])        || 0;
+      totals.interns         += parseInt(row[C.internships])       || 0;
+      totals.coops           += parseInt(row[C.coops])             || 0;
+      totals.furtherTraining += parseInt(row[C.furtherTraining])   || 0;
+      totals.activations     += parseInt(row[C.totalActivations])  || 0;
+      totals.partners        += parseInt(row[C.partnersCount])     || 0;
+      if (String(row[C.safetyConcern]).toLowerCase() === 'yes') totals.safetyConcerns++;
+
+      var hub       = String(row[C.hubName]  || 'Unknown');
+      var zone      = String(row[C.fpZone]   || 'Unknown');
+      var fp        = String(row[C.fpName]   || '');
+      var rating    = parseInt(row[C.rating]) || 0;
+      var visitDate = row[C.visitDate] ? String(row[C.visitDate]).substring(0,10) : '';
+      var urgency   = String(row[C.urgency]  || '');
+      var issues    = String(row[C.issues]   || '');
+      var story     = String(row[C.successStory] || '');
+      var submittedAt = row[C.submittedAt];
+
+      // Aggregate by hub
+      if (!byHub[hub]) { byHub[hub] = { reports:0, youth:0, activations:0, partners:0, ratings:[], fps:{} }; hubList.push(hub); }
+      byHub[hub].reports++;
+      byHub[hub].youth       += parseInt(row[C.totalYouth])       || 0;
+      byHub[hub].activations += parseInt(row[C.totalActivations]) || 0;
+      byHub[hub].partners    += parseInt(row[C.partnersCount])    || 0;
+      if (rating > 0) byHub[hub].ratings.push(rating);
+      byHub[hub].fps[fp] = (byHub[hub].fps[fp] || 0) + 1;
+
+      // Aggregate by zone
+      if (!byZone[zone]) byZone[zone] = { reports:0, youth:0, activations:0 };
+      byZone[zone].reports++;
+      byZone[zone].youth       += parseInt(row[C.totalYouth])       || 0;
+      byZone[zone].activations += parseInt(row[C.totalActivations]) || 0;
+
+      // By date (last 30 days)
+      if (submittedAt instanceof Date && submittedAt >= thirtyDaysAgo) {
+        if (!byDate[visitDate]) byDate[visitDate] = 0;
+        byDate[visitDate]++;
+      }
+
+      // Urgent items
+      if (urgency.indexOf('Urgent') !== -1 || urgency.indexOf('48') !== -1) {
+        urgentItems.push({ hub:hub, fp:fp, date:visitDate, urgency:urgency, issues:issues, rowIndex:r+1 });
+      }
+
+      // Low-rated hubs
+      if (rating > 0 && rating <= 2) {
+        lowRated.push({ hub:hub, fp:fp, date:visitDate, rating:rating });
+      }
+
+      // Success stories (max 5)
+      if (story && story.length > 10 && successStories.length < 5) {
+        successStories.push({ story:story, fp:fp, hub:hub, date:visitDate });
+      }
+
+      // Recent reports (last 10)
+      if (recentReports.length < 10) {
+        recentReports.push({
+          fp:fp, hub:hub, zone:zone, date:visitDate,
+          youth: parseInt(row[C.totalYouth])||0,
+          activations: parseInt(row[C.totalActivations])||0,
+          rating:rating, rowIndex:r+1
+        });
+      }
+    }
+
+    // Compute hub stats
+    var hubStats = [];
+    for (var h in byHub) {
+      var hd = byHub[h];
+      var ratings = hd.ratings;
+      var avgRating = ratings.length > 0
+        ? Math.round((ratings.reduce(function(a,b){return a+b;},0)/ratings.length)*10)/10
+        : null;
+      var fpList = Object.keys(hd.fps);
+      hubStats.push({ hub:h, reports:hd.reports, youth:hd.youth,
+                      activations:hd.activations, partners:hd.partners,
+                      avgRating:avgRating, focalPersons:fpList.length });
+    }
+    hubStats.sort(function(a,b){ return b.reports - a.reports; });
+
+    var zoneStats = [];
+    for (var z in byZone) {
+      zoneStats.push({ zone:z, reports:byZone[z].reports,
+                       youth:byZone[z].youth, activations:byZone[z].activations });
+    }
+    zoneStats.sort(function(a,b){ return b.reports - a.reports; });
+
+    return jsonOut({
+      status:'success',
+      generatedAt: new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'}),
+      totals:totals, hubStats:hubStats, zoneStats:zoneStats,
+      byDate:byDate, recentReports:recentReports,
+      urgentItems:urgentItems, lowRated:lowRated, successStories:successStories,
+      hubNames: hubList.filter(function(v,i,a){return a.indexOf(v)===i;}).sort()
+    });
+
+  } catch(err) {
+    Logger.log('Dashboard error: ' + err.toString());
+    return jsonOut({ status:'error', message:err.toString() });
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  HUB DRILL-DOWN — all metrics for one specific hub
+// ══════════════════════════════════════════════════════════════
+
+function getHubData(hubName) {
+  try {
+    if (!hubName) return jsonOut({ status:'error', message:'No hub specified.' });
+
+    var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!existing.hasNext()) return jsonOut({ status:'error', message:'No data yet.' });
+
+    var ss    = SpreadsheetApp.open(existing.next());
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status:'error', message:'No data yet.' });
+
+    var data = sheet.getDataRange().getValues();
+    var C = getColMap();
+
+    var rows = [], totals = {
+      reports:0, youth:0, men:0, women:0, pwd:0,
+      jobs:0, interns:0, coops:0, furtherTraining:0, activations:0,
+      partners:0, safetyConcerns:0
+    };
+    var byFP={}, byDate={}, ratingSum=0, ratingCount=0;
+    var qualityCounts={}, issueCounts={}, activityCounts={};
+    var partnerEngagements=[];
+
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
+      var hub = String(row[C.hubName] || '');
+      if (hub !== hubName) continue;
+
+      totals.reports++;
+      var youth      = parseInt(row[C.totalYouth])       || 0;
+      var acts       = parseInt(row[C.totalActivations]) || 0;
+      var partners   = parseInt(row[C.partnersCount])    || 0;
+      var rating     = parseInt(row[C.rating])           || 0;
+      var fp         = String(row[C.fpName]   || '');
+      var visitDate  = row[C.visitDate] ? String(row[C.visitDate]).substring(0,10) : '';
+      var quality    = String(row[C.qualityIndicators] || '');
+      var issues     = String(row[C.issues] || '');
+      var activities = String(row[C.activities] || '');
+      var urgency    = String(row[C.urgency] || '');
+      var concern    = String(row[C.safetyConcern] || '');
+      var partnerNames = String(row[C.partnerNames] || '');
+      var skillsReq  = String(row[C.skillsReq] || '');
+
+      totals.youth           += parseInt(row[C.youngMen])||0 + parseInt(row[C.youngWomen])||0 + parseInt(row[C.pwd])||0;
+      totals.men             += parseInt(row[C.youngMen])         || 0;
+      totals.women           += parseInt(row[C.youngWomen])       || 0;
+      totals.pwd             += parseInt(row[C.pwd])              || 0;
+      totals.jobs            += parseInt(row[C.formalJobs])       || 0;
+      totals.interns         += parseInt(row[C.internships])      || 0;
+      totals.coops           += parseInt(row[C.coops])            || 0;
+      totals.furtherTraining += parseInt(row[C.furtherTraining])  || 0;
+      totals.activations     += acts;
+      totals.partners        += partners;
+      if (concern.toLowerCase() === 'yes') totals.safetyConcerns++;
+
+      if (rating > 0) { ratingSum += rating; ratingCount++; }
+
+      // By focal person
+      if (!byFP[fp]) byFP[fp] = { reports:0, youth:0, activations:0 };
+      byFP[fp].reports++;
+      byFP[fp].youth       += youth;
+      byFP[fp].activations += acts;
+
+      // By date
+      if (!byDate[visitDate]) byDate[visitDate] = 0;
+      byDate[visitDate]++;
+
+      // Quality tag counts
+      if (quality) quality.split(';').forEach(function(q){ var t=q.trim(); if(t){qualityCounts[t]=(qualityCounts[t]||0)+1;} });
+      if (issues)  issues.split(';').forEach(function(i){ var t=i.trim(); if(t){issueCounts[t]=(issueCounts[t]||0)+1;} });
+      if (activities) activities.split(';').forEach(function(a){ var t=a.trim(); if(t){activityCounts[t]=(activityCounts[t]||0)+1;} });
+
+      // Partner details
+      if (partnerNames) {
+        partnerNames.split(';').forEach(function(pn,idx){
+          var name = pn.trim();
+          if (name) {
+            var skills = skillsReq.split(';')[idx] || '';
+            partnerEngagements.push({ name:name, date:visitDate, fp:fp, skills:skills.trim() });
+          }
+        });
+      }
+
+      rows.push({
+        rowIndex: r+1, date:visitDate, fp:fp,
+        community: String(row[C.community]||''),
+        trainingCentre: String(row[C.trainingCentre]||''),
+        youth:youth, men:parseInt(row[C.youngMen])||0, women:parseInt(row[C.youngWomen])||0,
+        pwd:parseInt(row[C.pwd])||0, staff:parseInt(row[C.staff])||0,
+        jobs:parseInt(row[C.formalJobs])||0, interns:parseInt(row[C.internships])||0,
+        coops:parseInt(row[C.coops])||0, activations:acts,
+        partners:partners, rating:rating, urgency:urgency,
+        issues:issues, challenges:String(row[C.challenges]||''),
+        recommendations:String(row[C.recommendations]||''),
+        highlight:String(row[C.successStory]||''),
+        safetyConcern:concern
+      });
+    }
+
+    // Sort rows by date
+    rows.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+
+    var avgRating = ratingCount > 0 ? Math.round((ratingSum/ratingCount)*10)/10 : null;
+
+    // FP summary
+    var fpStats = [];
+    for (var f in byFP) {
+      fpStats.push({ fp:f, reports:byFP[f].reports, youth:byFP[f].youth, activations:byFP[f].activations });
+    }
+    fpStats.sort(function(a,b){ return b.reports - a.reports; });
+
+    return jsonOut({
+      status:'success',
+      hub:hubName,
+      generatedAt: new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'}),
+      totals:totals, avgRating:avgRating,
+      rows:rows, fpStats:fpStats, byDate:byDate,
+      qualityCounts:qualityCounts, issueCounts:issueCounts, activityCounts:activityCounts,
+      partnerEngagements:partnerEngagements
+    });
+
+  } catch(err) {
+    Logger.log('Hub data error: ' + err.toString());
+    return jsonOut({ status:'error', message:err.toString() });
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  TEST DATA MANAGEMENT — list and delete rows
+// ══════════════════════════════════════════════════════════════
+
+function listAllRows() {
+  try {
+    var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!existing.hasNext()) return jsonOut({ status:'error', message:'No sheet found.' });
+    var ss    = SpreadsheetApp.open(existing.next());
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status:'success', rows:[] });
+
+    var data = sheet.getDataRange().getValues();
+    var C = getColMap();
+    var rows = [];
+
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
+      if (!row[C.fpName] && !row[C.hubName]) continue;
+      rows.push({
+        rowIndex: r+1,
+        submittedAt: row[C.submittedAt] ? String(row[C.submittedAt]).substring(0,24) : '',
+        fpName:    String(row[C.fpName]   || ''),
+        fpZone:    String(row[C.fpZone]   || ''),
+        hubName:   String(row[C.hubName]  || ''),
+        visitDate: String(row[C.visitDate]|| '').substring(0,10),
+        youth:     parseInt(row[C.totalYouth])||0,
+        activations: parseInt(row[C.totalActivations])||0
+      });
+    }
+
+    return jsonOut({ status:'success', rows:rows });
+  } catch(err) {
+    return jsonOut({ status:'error', message:err.toString() });
+  }
+}
+
+function deleteTestRow(rowIndexStr) {
+  try {
+    var rowIndex = parseInt(rowIndexStr);
+    if (!rowIndex || rowIndex < 2) return jsonOut({ status:'error', message:'Invalid row index.' });
+
+    var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!existing.hasNext()) return jsonOut({ status:'error', message:'No sheet found.' });
+    var ss    = SpreadsheetApp.open(existing.next());
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet) return jsonOut({ status:'error', message:'Field Reports sheet not found.' });
+
+    // Also delete from hub sheet if it exists
+    var hubName = String(sheet.getRange(rowIndex, 8).getValue() || ''); // col 8 = hubName
+    if (hubName) {
+      var hubSheet = ss.getSheetByName(hubName);
+      if (hubSheet) {
+        // Find matching row in hub sheet by date + FP name
+        var fpName    = String(sheet.getRange(rowIndex, 2).getValue() || '');
+        var visitDate = String(sheet.getRange(rowIndex, 6).getValue() || '').substring(0,10);
+        var hubData   = hubSheet.getDataRange().getValues();
+        for (var h = hubData.length - 1; h >= 2; h--) {
+          var hDate = String(hubData[h][5] || '').substring(0,10);
+          var hFP   = String(hubData[h][1] || '');
+          if (hDate === visitDate && hFP === fpName) {
+            hubSheet.deleteRow(h+1);
+            break;
+          }
+        }
+      }
+    }
+
+    // Delete from master sheet
+    sheet.deleteRow(rowIndex);
+    SpreadsheetApp.flush();
+
+    return jsonOut({ status:'success', message:'Row ' + rowIndex + ' deleted from master sheet and hub sheet.' });
+  } catch(err) {
+    Logger.log('Delete error: ' + err.toString());
+    return jsonOut({ status:'error', message:err.toString() });
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  COLUMN MAP — single place defining master sheet column indices
+// ══════════════════════════════════════════════════════════════
+
+function getColMap() {
+  // Columns match formatMasterSheet headers exactly (0-based)
+  return {
+    submittedAt:0,        // Submitted At
+    fpName:1,             // Field Personnel Name
+    fpPhone:2,            // Phone
+    fpZone:3,             // Zone
+    visitDate:4,          // Visit Date
+    visitType:5,          // Visit Type
+    hubName:6,            // Hub / TSP
+    community:7,          // Community
+    trainingCentre:8,     // Training Centre
+    tArr:9,               // Time Arrived
+    tDep:10,              // Time Departed
+    youngMen:11,          // Male
+    youngWomen:12,        // Female
+    pwd:13,               // PWD
+    staff:14,             // Staff
+    trainer:15,           // Number of Trainers
+    totalYouth:16,        // Total Youth
+    formalJobs:17,        // Number of Formal Jobs
+    internships:18,       // Internships
+    coops:19,             // Cooperatives
+    furtherTraining:20,   // Further Training
+    totalActivations:21,  // Total Activations
+    enrolM:22,            // Enrolments (M)
+    enrolF:23,            // Enrolments (F)
+    enrolCourse:24,       // Course
+    empName:25,           // Employer
+    empSector:26,         // Sector
+    rating:27,            // Hub Rating
+    qualityIndicators:28, // Quality Indicators
+    issues:29,            // Issues Flagged
+    facilities:30,        // Facilities
+    challenges:31,        // Challenges
+    partnersCount:32,     // Partners Count
+    totalFiles:33,        // Total Files
+    attDocs:34,           // Attendance Docs
+    finDocs:35,           // Financial Docs
+    mous:36,              // MoUs
+    trackSheets:37,       // Tracking Sheets
+    photos:38,            // Photos
+    videos:39,            // Videos
+    safeConfirmed:40,     // Safeguarding Items
+    safeDetails:41,       // Safeguarding Details
+    safetyConcern:42,     // Concern Raised
+    safeDetail:43,        // Concern Detail
+    finalNotes:44         // Final Notes
+  };
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  WEEKLY DIGEST TRIGGER SETUP
+//  Run setupWeeklyDigestTrigger() once to activate
+// ══════════════════════════════════════════════════════════════
+
+function setupWeeklyDigestTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'sendWeeklyDigest') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  ScriptApp.newTrigger('sendWeeklyDigest')
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.MONDAY)
+    .atHour(8)
+    .create();
+  Logger.log('Weekly digest trigger set: every Monday at 8am Ghana time.');
+}
+
+function sendWeeklyDigest() {
+  try {
+    var dashData = JSON.parse(getDashboardData().getContent());
+    if (dashData.status !== 'success') { Logger.log('Digest: no data'); return; }
+
+    var t = dashData.totals;
+    var now = new Date();
+    var weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
+    var dateStr = weekAgo.toLocaleDateString('en-GB') + ' - ' + now.toLocaleDateString('en-GB');
+
+    // Filter recent reports to this week only
+    var weekReports = (dashData.recentReports||[]).filter(function(r){
+      var d = new Date(r.date);
+      return d >= weekAgo;
+    });
+
+    // Count week-specific totals from byDate
+    var weekReportCount = 0;
+    var byDate = dashData.byDate || {};
+    for (var d in byDate) {
+      if (new Date(d) >= weekAgo) weekReportCount += byDate[d];
+    }
+
+    var urgents = (dashData.urgentItems||[]).filter(function(u){ return new Date(u.date)>=weekAgo; });
+    var stories = (dashData.successStories||[]).filter(function(s){ return new Date(s.date)>=weekAgo; });
+
+    function sc(val,lbl,bg,color){
+      return '<td style="text-align:center;padding:5px"><div style="background:'+bg+';border-radius:8px;padding:12px 8px">'+
+             '<div style="font-size:24px;font-weight:800;color:'+color+'">'+val+'</div>'+
+             '<div style="font-size:11px;color:#718096;margin-top:2px">'+lbl+'</div></div></td>';
+    }
+
+    var urgentHtml = '';
+    if (urgents.length > 0) {
+      urgentHtml = '<div style="background:#ffebee;border-left:4px solid #c62828;border-radius:8px;padding:14px;margin-bottom:14px">'+
+        '<div style="font-size:12px;font-weight:700;color:#c62828;text-transform:uppercase;margin-bottom:8px">'+urgents.length+' Urgent Item(s) Needing Action</div>';
+      urgents.forEach(function(u){
+        urgentHtml += '<div style="background:#fff;border-radius:6px;padding:9px;margin-bottom:6px;font-size:12px">'+
+          '<strong>'+u.hub+' — '+u.fp+'</strong> ('+u.date+')<br/>'+
+          '<span style="color:#c62828">'+u.urgency+'</span>'+(u.issues?'<br/><span style="color:#718096">'+u.issues+'</span>':'')+
+          '</div>';
+      });
+      urgentHtml += '</div>';
+    }
+
+    var storiesHtml = '';
+    if (stories.length > 0) {
+      storiesHtml = '<div style="background:#e8f5eb;border-left:4px solid #1a5c2a;border-radius:8px;padding:14px;margin-bottom:14px">'+
+        '<div style="font-size:12px;font-weight:700;color:#1a5c2a;text-transform:uppercase;margin-bottom:8px">Success Stories</div>';
+      stories.slice(0,3).forEach(function(s){
+        storiesHtml += '<div style="background:#fff;border-radius:6px;padding:9px;margin-bottom:6px;font-size:12px">'+
+          '<strong>'+s.fp+' at '+s.hub+':</strong><br/>'+s.story+'</div>';
+      });
+      storiesHtml += '</div>';
+    }
+
+    var ts = new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'});
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/></head>'+
+      '<body style="font-family:\'Segoe UI\',Arial,sans-serif;background:#f3f7f4;margin:0;padding:20px">'+
+      '<div style="max-width:680px;margin:0 auto">'+
+      '<div style="background:linear-gradient(135deg,#1a5c2a,#2d7a3a);border-radius:12px;padding:22px;color:#fff;margin-bottom:14px">'+
+        '<div style="font-size:10px;opacity:.7;text-transform:uppercase;margin-bottom:3px">SEG Ghana - Weekly Digest</div>'+
+        '<div style="font-size:20px;font-weight:700;margin-bottom:2px">Youth in Work Programme</div>'+
+        '<div style="font-size:13px;opacity:.85">Week of '+dateStr+'</div>'+
+      '</div>'+
+      '<div style="background:#fff;border-radius:12px;border:1px solid #dde3ea;padding:16px;margin-bottom:14px">'+
+        '<div style="font-size:11px;font-weight:700;color:#1a5c2a;text-transform:uppercase;margin-bottom:12px">Week at a Glance</div>'+
+        '<table style="width:100%;border-collapse:collapse"><tr>'+
+          sc(weekReportCount,'Reports this week','#e8f5eb','#1a5c2a')+
+          sc(t.youth,'Total youth (all time)','#fff8e1','#b8860b')+
+          sc(t.activations,'Total activations','#e3f2fd','#1565c0')+
+          sc(t.partners,'Total partners','#e0f2f1','#00695c')+
+        '</tr></table>'+
+      '</div>'+
+      urgentHtml + storiesHtml +
+      '<div style="text-align:center;padding:14px;font-size:11px;color:#718096">'+
+        'YiW Weekly Digest - '+ts+'<br/>SEG Ghana | Youth in Work Programme'+
+      '</div></div></body></html>';
+
+    MailApp.sendEmail({
+      to: TO_EMAIL, cc: CC_EMAILS,
+      subject: 'YiW Weekly Digest - Week of ' + dateStr + ' (' + weekReportCount + ' reports)',
+      htmlBody: html
+    });
+
+    Logger.log('Weekly digest sent.');
+  } catch(err) {
+    Logger.log('Digest error: ' + err.toString());
+  }
 }
 
 
@@ -238,38 +765,57 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
     }
 
     var dataRow = [
-      new Date(),
-      d.fpName, d.fpPhone, d.fpEmail, d.fpZone,
-      d.visitDate, d.visitType, d.hubName, d.community, d.trainingCentre,
-      d.centreAddress, d.hubContact, d.hubContactPhone, d.tArr, d.tDep,
+      new Date(),                                    // 0  Submitted At
+      d.fpName,                                      // 1  Field Personnel Name
+      d.fpPhone,                                     // 2  Phone
+      d.fpZone,                                      // 3  Zone
+      d.visitDate,                                   // 4  Visit Date
+      d.visitType,                                   // 5  Visit Type
+      d.hubName,                                     // 6  Hub / TSP
+      d.community,                                   // 7  Community
+      d.trainingCentre,                              // 8  Training Centre
+      d.tArr,                                        // 9  Time Arrived
+      d.tDep,                                        // 10 Time Departed
       // Attendance
-      d.cMale, d.cFemale, d.cPWD, d.cStaff, d.cTrainer,
-      (d.cMale + d.cFemale + d.cPWD),
+      d.cMale,                                       // 11 Male
+      d.cFemale,                                     // 12 Female
+      d.cPWD,                                        // 13 PWD
+      d.cStaff,                                      // 14 Staff
+      d.cTrainer,                                    // 15 Number of Trainers
+      (d.cMale + d.cFemale + d.cPWD),               // 16 Total Youth
       // Activation
-      d.aJobs, d.aIntern, d.aCoop, d.aRef,
-      (d.aJobs + d.aIntern + d.aCoop + d.aRef),
-      d.enrolM, d.enrolF, d.enrolCourse, d.empName, d.empSector,
+      d.aJobs,                                       // 17 Number of Formal Jobs
+      d.aIntern,                                     // 18 Internships
+      d.aCoop,                                       // 19 Cooperatives
+      d.aRef,                                        // 20 Further Training
+      (d.aJobs + d.aIntern + d.aCoop + d.aRef),     // 21 Total Activations
+      d.enrolM,                                      // 22 Enrolments (M)
+      d.enrolF,                                      // 23 Enrolments (F)
+      d.enrolCourse,                                 // 24 Course
+      d.empName,                                     // 25 Employer
+      d.empSector,                                   // 26 Sector
       // Quality
-      d.rating,
-      d.quality.join('; '),
-      d.issues.join('; '),
-      d.facilities.join('; '),
-      d.activities.join('; '),
-      d.challenges, d.recommendations, d.urgency, d.followUpBy,
+      d.rating,                                      // 27 Hub Rating
+      d.quality.join('; '),                          // 28 Quality Indicators
+      d.issues.join('; '),                           // 29 Issues Flagged
+      d.facilities.join('; '),                       // 30 Facilities
+      d.challenges,                                  // 31 Challenges
       // Partners
-      d.partners.length,
-      partnerNames.join('; '),
-      partnerSkills.join('; '),
+      d.partners.length,                             // 32 Partners Count
       // Files
-      fc.total, fc.dAtt, fc.dFin, fc.dMou, fc.dTrack, fc.mPhoto, fc.mVideo,
-      allFileUrls.join(' | '),
+      fc.total,                                      // 33 Total Files
+      fc.dAtt,                                       // 34 Attendance Docs
+      fc.dFin,                                       // 35 Financial Docs
+      fc.dMou,                                       // 36 MoUs
+      fc.dTrack,                                     // 37 Tracking Sheets
+      fc.mPhoto,                                     // 38 Photos
+      fc.mVideo,                                     // 39 Videos
       // Safeguarding
-      d.safeChecked.length,
-      d.safeChecked.join('; '),
-      (d.safeConcern === 'yes' ? 'YES' : 'No'),
-      d.safeTxt,
-      // Narrative
-      d.highlight, d.yVoice, d.finalNotes
+      d.safeChecked.length,                          // 40 Safeguarding Items
+      d.safeChecked.join('; '),                      // 41 Safeguarding Details
+      (d.safeConcern === 'yes' ? 'YES' : 'No'),      // 42 Concern Raised
+      d.safeTxt,                                     // 43 Concern Detail
+      d.finalNotes                                   // 44 Final Notes
     ];
 
     sheet.appendRow(dataRow);
@@ -291,18 +837,51 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
 
 function formatMasterSheet(sheet) {
   var headers = [
-    'Submitted At','FP Name','FP Phone','FP Email','Zone',
-    'Visit Date','Visit Type','Hub / TSP','Community','Training Centre',
-    'Centre Address','Centre Contact','Contact Phone','Time Arrived','Time Departed',
-    'Young Men','Young Women','PWD','Staff','Trainers','Total Youth',
-    'Formal Jobs','Internships','Cooperatives','Further Training','Total Activations',
-    'Enrolments (M)','Enrolments (F)','Course / Trade','Employer','Sector',
-    'Hub Rating','Quality Indicators','Issues Flagged','Facilities','Activities',
-    'Challenges','Recommendations','Urgency','Follow-up By',
-    'Partners Count','Partner Names & Status','Skills Requested by Partners',
-    'Total Files','Attendance Docs','Financial Docs','MoUs','Tracking Sheets','Photos','Videos','File Links',
-    'Safeguarding Items Confirmed','Safeguarding Details','Concern Raised','Concern Detail',
-    'Success Story','Youth Voice','Final Notes'
+    'Submitted At',
+    'Field Personnel Name',
+    'Phone',
+    'Zone',
+    'Visit Date',
+    'Visit Type',
+    'Hub / TSP',
+    'Community',
+    'Training Centre',
+    'Time Arrived',
+    'Time Departed',
+    'Male',
+    'Female',
+    'PWD',
+    'Staff',
+    'Number of Trainers',
+    'Total Youth',
+    'Number of Formal Jobs',
+    'Internships',
+    'Cooperatives',
+    'Further Training',
+    'Total Activations',
+    'Enrolments (M)',
+    'Enrolments (F)',
+    'Course',
+    'Employer',
+    'Sector',
+    'Hub Rating',
+    'Quality Indicators',
+    'Issues Flagged',
+    'Facilities',
+    'Challenges',
+    'Partners Count',
+    'Total Files',
+    'Attendance Docs',
+    'Financial Docs',
+    'MoUs',
+    'Tracking Sheets',
+    'Photos',
+    'Videos',
+    'Safeguarding Items',
+    'Safeguarding Details',
+    'Concern Raised',
+    'Concern Detail',
+    'Final Notes'
   ];
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -317,17 +896,36 @@ function formatMasterSheet(sheet) {
   sheet.setFrozenRows(1);
   sheet.getRange(1, 1, 1, headers.length).createFilter();
 
-  sheet.setColumnWidth(1,  160);
-  sheet.setColumnWidth(2,  140);
-  sheet.setColumnWidth(8,  220);
-  sheet.setColumnWidth(9,  120);
-  sheet.setColumnWidth(10, 170);
-  sheet.setColumnWidth(33, 220);
-  sheet.setColumnWidth(34, 200);
-  sheet.setColumnWidth(36, 260);
-  sheet.setColumnWidth(37, 260);
-  sheet.setColumnWidth(42, 200);
-  sheet.setColumnWidth(50, 300);
+  // Column widths
+  sheet.setColumnWidth(1,  165); // Submitted At
+  sheet.setColumnWidth(2,  150); // Field Personnel Name
+  sheet.setColumnWidth(3,  120); // Phone
+  sheet.setColumnWidth(4,  120); // Zone
+  sheet.setColumnWidth(5,  100); // Visit Date
+  sheet.setColumnWidth(6,  140); // Visit Type
+  sheet.setColumnWidth(7,  240); // Hub / TSP
+  sheet.setColumnWidth(8,  130); // Community
+  sheet.setColumnWidth(9,  180); // Training Centre
+  sheet.setColumnWidth(29, 220); // Quality Indicators
+  sheet.setColumnWidth(30, 200); // Issues Flagged
+  sheet.setColumnWidth(32, 260); // Challenges
+}
+
+// Run this once manually to fix headers on an existing sheet without deleting data
+function resetMasterSheetHeaders() {
+  var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+  if (!existing.hasNext()) { Logger.log('No master sheet found.'); return; }
+  var ss    = SpreadsheetApp.open(existing.next());
+  var sheet = ss.getSheetByName('Field Reports');
+  if (!sheet) { Logger.log('Field Reports tab not found.'); return; }
+
+  // Remove existing filter before reformatting
+  var filter = sheet.getFilter();
+  if (filter) filter.remove();
+
+  formatMasterSheet(sheet);
+  SpreadsheetApp.flush();
+  Logger.log('Master sheet headers reset successfully. ' + sheet.getLastRow() + ' rows of data preserved.');
 }
 
 
