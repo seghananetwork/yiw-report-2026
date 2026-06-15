@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#1a5c2a"/>
+<title>YiW Dashboard — SEG Ghana</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --g:#1a5c2a;--gm:#2d7a3a;--gl:#e8f5eb;--gb:#4caf50;
+  --gold:#b8860b;--goldl:#fff8e1;
+  --red:#c62828;--redl:#ffebee;
+  --blue:#1565c0;--bluel:#e3f2fd;
+  --ora:#e65100;--oral:#fff3e0;
+  --teal:#00695c;--teall:#e0f2f1;
+  --purple:#6a1b9a;--purplel:#f3e8fd;
+  --grey:#455a64;--greyl:#eceff1;
+  --t1:#1a1a2e;--t2:#4a5568;--t3:#718096;
+  --bdr:#dde3ea;--sh:0 2px 12px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-height:100vh}
+
+/* TOP BAR */
+.topbar{background:linear-gradient(135deg,var(--g),var(--gm));color:#fff;padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 3px 16px rgba(0,0,0,.2)}
+.tl h1{font-size:16px;font-weight:700}
+.tl p{font-size:10px;opacity:.75;margin-top:1px}
+.tr{display:flex;align-items:center;gap:10px}
+.tbtn{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.25);padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
+.tbtn:hover{background:rgba(255,255,255,.28)}
+.tbtn.active{background:#fff;color:var(--g)}
+.lu{font-size:11px;opacity:.7;white-space:nowrap}
+
+/* VIEWS */
+.view{display:none;max-width:1200px;margin:0 auto;padding:20px 16px}
+.view.active{display:block}
+
+/* LOADING */
+.loading{text-align:center;padding:80px 20px;color:var(--t3)}
+.spinner{width:36px;height:36px;border:3px solid var(--bdr);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* STAT CARDS */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.sc{background:#fff;border-radius:12px;padding:16px;border:1px solid var(--bdr);box-shadow:var(--sh);text-align:center;cursor:default}
+.sc .val{font-size:30px;font-weight:800;line-height:1;margin-bottom:4px}
+.sc .lbl{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+.sc .sub{font-size:10px;color:var(--t3);margin-top:3px}
+
+/* SECTION */
+.sec{margin-bottom:20px}
+.sec-ttl{font-size:11.5px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.sec-ttl a{font-size:11px;font-weight:500;color:var(--g);cursor:pointer;text-decoration:none}
+
+/* CARDS */
+.card{background:#fff;border-radius:12px;border:1px solid var(--bdr);box-shadow:var(--sh);overflow:hidden;margin-bottom:12px}
+.cb{padding:16px}
+.ca{border-left:4px solid var(--g)}
+.cb-blue{border-left:4px solid var(--blue)}
+.cb-red{border-left:4px solid var(--red)}
+.cb-gold{border-left:4px solid var(--gold)}
+.cb-purple{border-left:4px solid var(--purple)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:var(--gl);color:var(--g);font-weight:700;padding:9px 11px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--gm);cursor:pointer;user-select:none;white-space:nowrap}
+.tbl th:hover{background:#d4edda}
+.tbl th.sort-asc::after{content:' ↑'}
+.tbl th.sort-desc::after{content:' ↓'}
+.tbl td{padding:9px 11px;border-bottom:1px solid #f0f4f0;color:var(--t2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fafdfb}
+.tbl-wrap{overflow-x:auto}
+
+/* PILLS */
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-g{background:var(--gl);color:var(--g)}
+.pill-r{background:var(--redl);color:var(--red)}
+.pill-o{background:var(--oral);color:var(--ora)}
+.pill-b{background:var(--bluel);color:var(--blue)}
+.pill-p{background:var(--purplel);color:var(--purple)}
+.pill-gold{background:var(--goldl);color:var(--gold)}
+
+/* ALERTS */
+.alert{border-radius:10px;padding:14px;margin-bottom:10px}
+.alert-r{background:var(--redl);border-left:4px solid var(--red)}
+.alert-o{background:var(--oral);border-left:4px solid var(--ora)}
+.alert-g{background:var(--gl);border-left:4px solid var(--g)}
+.a-ttl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.alert-r .a-ttl{color:var(--red)}
+.alert-o .a-ttl{color:var(--ora)}
+.alert-g .a-ttl{color:var(--g)}
+.a-item{background:#fff;border-radius:6px;padding:9px 11px;margin-bottom:6px;font-size:12px;color:var(--t2)}
+.a-item:last-child{margin-bottom:0}
+.a-item strong{display:block;color:var(--t1);font-weight:600;margin-bottom:2px}
+
+/* BAR CHARTS */
+.bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar-lbl{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;text-align:right}
+.bar-track{flex:1;height:22px;background:var(--greyl);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;padding-left:7px;min-width:30px}
+.bar-val{font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+
+/* ACTIVITY CHART */
+.act-grid{display:flex;align-items:flex-end;gap:3px;height:80px;overflow:hidden}
+.act-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.act-bar{width:100%;border-radius:3px 3px 0 0;min-height:4px;background:var(--g)}
+.act-date{font-size:8px;color:var(--t3);transform:rotate(-45deg);white-space:nowrap;margin-top:3px}
+
+/* TAG COUNTS */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#f1f5f9;color:var(--t2)}
+.tag-count{background:var(--g);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px}
+.tag-issue .tag-count{background:var(--red)}
+
+/* HUB DRILL-DOWN */
+.hub-selector{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.hub-selector select{flex:1;min-width:200px;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;color:var(--t1);background:#fff;cursor:pointer}
+.hub-selector select:focus{outline:none;border-color:var(--gm)}
+.hub-selector button{background:var(--g);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .12s}
+.hub-selector button:hover{background:var(--gm)}
+.back-btn{background:var(--greyl);color:var(--t2);border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .12s;display:inline-flex;align-items:center;gap:5px}
+.back-btn:hover{background:var(--bdr)}
+
+/* DATA MANAGER */
+.dm-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid var(--bdr);border-radius:8px;margin-bottom:6px;font-size:12px}
+.dm-row:hover{background:#fafdfb}
+.dm-info{flex:1}
+.dm-info strong{display:block;font-size:13px;color:var(--t1);font-weight:600}
+.dm-info span{color:var(--t3);font-size:11px}
+.dm-del{background:var(--redl);color:var(--red);border:1px solid #ef9a9a;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .12s;white-space:nowrap}
+.dm-del:hover{background:var(--red);color:#fff}
+.dm-filter{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.dm-filter input,.dm-filter select{padding:8px 11px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;flex:1;min-width:140px}
+.dm-filter input:focus,.dm-filter select:focus{outline:none;border-color:var(--gm)}
+
+/* EMPTY */
+.empty{text-align:center;padding:30px;color:var(--t3);font-size:13px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.modal h2{font-size:15px;font-weight:700;margin-bottom:6px}
+.modal p{font-size:12px;color:var(--t3);margin-bottom:16px;line-height:1.6}
+.modal input{width:100%;padding:10px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;margin-bottom:10px}
+.modal input:focus{outline:none;border-color:var(--gm)}
+.modal-btns{display:flex;gap:8px}
+.mbtn{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;border:none;transition:all .12s}
+.mbtn-g{background:var(--g);color:#fff}
+.mbtn-g:hover{background:var(--gm)}
+.mbtn-w{background:var(--greyl);color:var(--t2)}
+.mbtn-w:hover{background:var(--bdr)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:25px;font-size:13px;font-weight:500;z-index:999;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.show{opacity:1}
+
+@media(max-width:640px){
+  .g2,.g3{grid-template-columns:1fr}
+  .sg{grid-template-columns:repeat(2,1fr)}
+  .bar-lbl{width:100px;font-size:11px}
+  .lu{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tl"><h1>YiW Dashboard</h1><p>SEG Ghana — Youth in Work Programme</p></div>
+  <div class="tr">
+    <span class="lu" id="lu">Loading…</span>
+    <button class="tbtn active" id="btn-overview" onclick="switchView('overview')">Overview</button>
+    <button class="tbtn" id="btn-hub" onclick="switchView('hub')">Hub View</button>
+    <button class="tbtn" id="btn-data" onclick="switchView('data')">Data Manager</button>
+    <button class="tbtn" onclick="loadData()">↻ Refresh</button>
+    <button class="tbtn" onclick="openConfig()">⚙ Config</button>
+    <a href="/yiw-report-2026/" class="tbtn">← Form</a>
+  </div>
+</div>
+
+<!-- ═══ OVERVIEW VIEW ═══ -->
+<div class="view active" id="view-overview">
+
+  <div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <p>Loading dashboard data…</p>
+  </div>
+
+  <div id="overviewContent" style="display:none">
+
+    <!-- ALL-TIME STATS -->
+    <div class="sec">
+      <div class="sec-ttl">Programme totals (all time)</div>
+      <div class="sg" id="statsGrid"></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div id="alertsSection"></div>
+
+    <!-- ACTIVITY + ZONE GRID -->
+    <div class="g2">
+      <div>
+        <div class="sec-ttl">Daily report activity (last 30 days)</div>
+        <div class="card"><div class="cb"><div class="act-grid" id="activityChart"></div></div></div>
+      </div>
+      <div>
+        <div class="sec-ttl">Reports by zone</div>
+        <div class="card"><div class="cb" id="zoneChart"></div></div>
+      </div>
+    </div>
+
+    <!-- SUCCESS STORIES -->
+    <div id="storiesSection"></div>
+
+    <!-- HUB PERFORMANCE TABLE -->
+    <div class="sec">
+      <div class="sec-ttl">
+        Hub performance summary
+        <a onclick="switchView('hub')">View hub detail →</a>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th onclick="sortTable('hubTbody',0)">Hub / TSP</th>
+              <th onclick="sortTable('hubTbody',1)" style="text-align:center">Reports</th>
+              <th onclick="sortTable('hubTbody',2)" style="text-align:center">Youth</th>
+              <th onclick="sortTable('hubTbody',3)" style="text-align:center">Activations</th>
+              <th onclick="sortTable('hubTbody',4)" style="text-align:center">Partners</th>
+              <th onclick="sortTable('hubTbody',5)" style="text-align:center">FPs</th>
+              <th onclick="sortTable('hubTbody',6)" style="text-align:center">Avg rating</th>
+            </tr></thead>
+            <tbody id="hubTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT REPORTS -->
+    <div class="sec">
+      <div class="sec-ttl">Recent submissions (latest 10)</div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th onclick="sortTable('recentTbody',0)">Date</th>
+              <th onclick="sortTable('recentTbody',1)">Focal Person</th>
+              <th onclick="sortTable('recentTbody',2)">Hub</th>
+              <th onclick="sortTable('recentTbody',3)">Zone</th>
+              <th onclick="sortTable('recentTbody',4)" style="text-align:center">Youth</th>
+              <th onclick="sortTable('recentTbody',5)" style="text-align:center">Activations</th>
+              <th onclick="sortTable('recentTbody',6)" style="text-align:center">Rating</th>
+            </tr></thead>
+            <tbody id="recentTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ HUB DETAIL VIEW ═══ -->
+<div class="view" id="view-hub">
+  <div style="height:16px"></div>
+
+  <div class="hub-selector">
+    <select id="hubSelect" onchange="onHubSelect()">
+      <option value="">Select a hub to view its data…</option>
+    </select>
+    <button onclick="loadHubData()">View Hub Data</button>
+  </div>
+
+  <div class="loading" id="hubLoadingState" style="display:none">
+    <div class="spinner"></div>
+    <p>Loading hub data…</p>
+  </div>
+
+  <div id="hubContent" style="display:none">
+
+    <!-- HUB HEADER -->
+    <div class="card ca" style="margin-bottom:16px">
+      <div class="cb">
+        <div id="hubHeader"></div>
+      </div>
+    </div>
+
+    <!-- HUB STATS -->
+    <div class="sg" id="hubStatsGrid"></div>
+
+    <div class="g2">
+      <!-- Activity by date -->
+      <div>
+        <div class="sec-ttl">Visit frequency</div>
+        <div class="card"><div class="cb"><div class="act-grid" id="hubActivityChart"></div></div></div>
+      </div>
+      <!-- Focal persons -->
+      <div>
+        <div class="sec-ttl">Focal persons assigned</div>
+        <div class="card"><div class="cb" id="hubFPChart"></div></div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <!-- Quality tags -->
+      <div>
+        <div class="sec-ttl">Quality indicators observed</div>
+        <div class="card"><div class="cb"><div class="tag-list" id="hubQualityTags"></div></div></div>
+      </div>
+      <!-- Issue tags -->
+      <div>
+        <div class="sec-ttl">Compliance issues flagged</div>
+        <div class="card"><div class="cb"><div class="tag-list" id="hubIssueTags"></div></div></div>
+      </div>
+    </div>
+
+    <!-- Activities -->
+    <div class="sec">
+      <div class="sec-ttl">Activities observed at this hub</div>
+      <div class="card"><div class="cb"><div class="tag-list" id="hubActivityTags"></div></div></div>
+    </div>
+
+    <!-- Partner engagements at this hub -->
+    <div class="sec">
+      <div class="sec-ttl">Partner companies engaged at this hub</div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th>Company</th><th>Skills requested</th><th>FP</th><th>Date</th>
+            </tr></thead>
+            <tbody id="hubPartnerTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visit log -->
+    <div class="sec">
+      <div class="sec-ttl">Full visit log for this hub</div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th onclick="sortTable('hubVisitTbody',0)">Date</th>
+              <th onclick="sortTable('hubVisitTbody',1)">FP</th>
+              <th onclick="sortTable('hubVisitTbody',2)">Community</th>
+              <th onclick="sortTable('hubVisitTbody',3)" style="text-align:center">Youth</th>
+              <th onclick="sortTable('hubVisitTbody',4)" style="text-align:center">Activations</th>
+              <th onclick="sortTable('hubVisitTbody',5)" style="text-align:center">Partners</th>
+              <th onclick="sortTable('hubVisitTbody',6)" style="text-align:center">Rating</th>
+              <th onclick="sortTable('hubVisitTbody',7)">Urgency</th>
+              <th>Issues</th>
+            </tr></thead>
+            <tbody id="hubVisitTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ DATA MANAGER VIEW ═══ -->
+<div class="view" id="view-data">
+  <div style="height:16px"></div>
+
+  <div class="card cb-red" style="margin-bottom:16px">
+    <div class="cb">
+      <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px">⚠ Test Data Manager</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.6">
+        Use this tool to remove test submissions made during setup and training.
+        Deleting a row removes it from both the Master Sheet and the hub-specific sheet.
+        <strong>This action is permanent and cannot be undone.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="dm-filter">
+    <input type="text" id="dmSearch" placeholder="Search by name, hub, zone…" oninput="filterDmRows()"/>
+    <select id="dmFilter" onchange="filterDmRows()">
+      <option value="">All hubs</option>
+    </select>
+    <button onclick="loadDmData()" style="background:var(--g);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">↻ Refresh</button>
+  </div>
+
+  <div class="loading" id="dmLoadingState" style="display:none">
+    <div class="spinner"></div>
+    <p>Loading submissions…</p>
+  </div>
+
+  <div id="dmList"></div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <h2>⚙ Dashboard Setup</h2>
+    <p>Paste your Google Apps Script deployment URL. The dashboard reads all live data through this endpoint.</p>
+    <input type="text" id="configUrl" placeholder="https://script.google.com/macros/s/.../exec"/>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-w" onclick="closeConfig()">Cancel</button>
+      <button class="mbtn mbtn-g" onclick="saveConfig()">Save & Load</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──
+// Hardcoded script URL — no configuration needed after deployment
+const HARDCODED_URL = 'https://script.google.com/macros/s/AKfycbwW4WmAQ7WjLhqI-UypvnQt9Qcd9qoXMV24fZJn9xA8kPnUEzfIGnTxYepCBDC8BfVn-A/exec';
+const SK = 'yiw_dash_url_v2';
+
+function getUrl(){
+  // Use stored URL if set, otherwise fall back to hardcoded
+  return localStorage.getItem(SK) || HARDCODED_URL;
+}
+function openConfig(){ document.getElementById('configUrl').value=getUrl(); document.getElementById('configModal').classList.add('open'); }
+function closeConfig(){ document.getElementById('configModal').classList.remove('open'); }
+function saveConfig(){
+  const u=document.getElementById('configUrl').value.trim();
+  if(!u||!u.includes('script.google.com')){ alert('Please enter a valid Apps Script URL.'); return; }
+  localStorage.setItem(SK,u); closeConfig(); loadData();
+}
+
+// ── VIEW SWITCHING ──
+function switchView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tbtn[id^=btn-]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  const btn=document.getElementById('btn-'+v);
+  if(btn) btn.classList.add('active');
+  if(v==='data') loadDmData();
+}
+
+// ── OVERVIEW DATA ──
+async function loadData(){
+  const url=getUrl();
+  if(!url){ openConfig(); return; }
+  document.getElementById('loadingState').style.display='block';
+  document.getElementById('overviewContent').style.display='none';
+  try{
+    const resp=await fetch(url+'?action=dashboard');
+    const data=await resp.json();
+    if(data.status!=='success') throw new Error(data.message||'Error from script');
+    dashData=data;
+    populateHubSelector(data.hubNames||[]);
+    renderOverview(data);
+    document.getElementById('lu').textContent='Updated: '+data.generatedAt;
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('overviewContent').style.display='block';
+  }catch(e){
+    document.getElementById('loadingState').innerHTML=
+      '<p style="color:var(--red);font-size:14px;font-weight:600">Failed to load</p>'+
+      '<p style="color:var(--t3);font-size:12px;margin-top:6px">'+e.message+'</p>'+
+      '<button onclick="openConfig()" style="margin-top:14px;background:var(--g);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Configure URL</button>';
+  }
+}
+
+// ── RENDER OVERVIEW ──
+function renderOverview(data){
+  const t=data.totals;
+
+  // Stat cards
+  const stats=[
+    {val:t.reports,     lbl:'Total reports',      sub:'All submissions',         col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:t.youth,       lbl:'Youth reached',      sub:`${t.men}M / ${t.women}F / ${t.pwd} PWD`, col:'#b8860b',bg:'#fff8e1'},
+    {val:t.activations, lbl:'Total activations',  sub:`${t.jobs} jobs · ${t.interns} internships`,col:'#1565c0',bg:'#e3f2fd'},
+    {val:t.partners,    lbl:'Partners engaged',   sub:'Cumulative',              col:'#00695c',bg:'#e0f2f1'},
+    {val:t.jobs,        lbl:'Formal jobs',        sub:'Placed',                  col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:t.interns,     lbl:'Internships',        sub:'Secured',                 col:'#6a1b9a',bg:'#f3e8fd'},
+    {val:t.coops,       lbl:'Cooperatives',       sub:'Joined',                  col:'#e65100',bg:'#fff3e0'},
+    {val:t.safetyConcerns,lbl:'Safety concerns',  sub:t.safetyConcerns>0?'Review required':'All clear',
+     col:t.safetyConcerns>0?'#c62828':'#1a5c2a',bg:t.safetyConcerns>0?'#ffebee':'#e8f5eb'}
+  ];
+  document.getElementById('statsGrid').innerHTML=stats.map(s=>
+    `<div class="sc">
+       <div class="val" style="color:${s.col}">${s.val.toLocaleString()}</div>
+       <div class="lbl">${s.lbl}</div>
+       <div class="sub">${s.sub}</div>
+     </div>`).join('');
+
+  // Alerts
+  let ah='';
+  if(data.urgentItems?.length>0){
+    ah+=`<div class="alert alert-r"><div class="a-ttl">⚠ ${data.urgentItems.length} Urgent Action Required</div>
+      ${data.urgentItems.map(u=>`<div class="a-item"><strong>${u.hub} — ${u.fp} (${u.date})</strong>
+        <span style="color:var(--red)">${u.urgency}</span>
+        ${u.issues?`<br/><span style="color:var(--t3)">${u.issues}</span>`:''}</div>`).join('')}</div>`;
+  }
+  if(data.lowRated?.length>0){
+    ah+=`<div class="alert alert-o"><div class="a-ttl">Hub Quality Concerns (Rating ≤ 2/5)</div>
+      ${data.lowRated.map(l=>`<div class="a-item"><strong>${l.hub}</strong> — ${l.fp} (${l.date}) — Rating: ${l.rating}/5</div>`).join('')}</div>`;
+  }
+  document.getElementById('alertsSection').innerHTML=ah;
+
+  // Activity chart
+  const byDate=data.byDate||{};
+  const dates=Object.keys(byDate).sort();
+  const maxV=Math.max(...Object.values(byDate),1);
+  const actEl=document.getElementById('activityChart');
+  actEl.innerHTML=dates.length===0?'<div class="empty">No recent activity</div>'
+    :dates.map(d=>`<div class="act-col" title="${d}: ${byDate[d]} report(s)">
+        <div class="act-bar" style="height:${Math.round((byDate[d]/maxV)*100)}%;min-height:4px"></div>
+        <div class="act-date">${d.substring(5)}</div></div>`).join('');
+
+  // Zone chart
+  const zones=data.zoneStats||[];
+  const maxZ=zones.length>0?Math.max(...zones.map(z=>z.reports),1):1;
+  const zcols=['#1a5c2a','#2d7a3a','#4caf50','#1565c0','#00695c','#b8860b','#e65100','#6a1b9a'];
+  document.getElementById('zoneChart').innerHTML=zones.length===0?'<div class="empty">No zone data</div>'
+    :zones.map((z,i)=>`<div class="bar-wrap">
+        <div class="bar-lbl" style="width:140px" title="${z.zone}">${z.zone}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${Math.round((z.reports/maxZ)*100)}%;background:${zcols[i%zcols.length]}">
+            <span class="bar-val">${z.reports} (${z.youth} youth)</span></div></div></div>`).join('');
+
+  // Success stories
+  const stories=data.successStories||[];
+  document.getElementById('storiesSection').innerHTML=stories.length===0?''
+    :`<div class="sec"><div class="sec-ttl">Recent success stories</div>
+      <div class="alert alert-g"><div class="a-ttl">Highlights from the field</div>
+      ${stories.map(s=>`<div class="a-item"><strong>${s.fp} at ${s.hub} (${s.date})</strong>${s.story}</div>`).join('')}
+      </div></div>`;
+
+  // Hub table
+  const hubs=data.hubStats||[];
+  document.getElementById('hubTbody').innerHTML=hubs.length===0?'<tr><td colspan="7" class="empty">No hub data yet</td></tr>'
+    :hubs.map(h=>{
+      const r=h.avgRating;
+      const stars=r?('★'.repeat(Math.round(r))+'☆'.repeat(5-Math.round(r))+' '+r):'—';
+      const rclass=r>=4?'pill-g':r>=3?'pill-b':r?'pill-r':'';
+      return `<tr>
+        <td><strong style="cursor:pointer;color:var(--g)" onclick="drillHub('${h.hub}')">${h.hub}</strong></td>
+        <td style="text-align:center"><span class="pill pill-g">${h.reports}</span></td>
+        <td style="text-align:center;font-weight:700;color:var(--gold)">${h.youth.toLocaleString()}</td>
+        <td style="text-align:center;font-weight:700;color:var(--g)">${h.activations.toLocaleString()}</td>
+        <td style="text-align:center">${h.partners.toLocaleString()}</td>
+        <td style="text-align:center"><span class="pill pill-b">${h.focalPersons}</span></td>
+        <td style="text-align:center"><span class="${rclass?'pill '+rclass:''}">${stars}</span></td>
+      </tr>`;}).join('');
+
+  // Recent reports
+  const recent=data.recentReports||[];
+  document.getElementById('recentTbody').innerHTML=recent.length===0?'<tr><td colspan="7" class="empty">No recent reports</td></tr>'
+    :recent.map(r=>{
+      const rb=r.rating?`<span class="pill ${r.rating>=4?'pill-g':r.rating>=3?'pill-b':'pill-r'}">${r.rating}/5</span>`:'<span style="color:var(--t3)">—</span>';
+      return `<tr>
+        <td>${r.date||'—'}</td>
+        <td>${r.fp}</td>
+        <td><span style="cursor:pointer;color:var(--g);font-weight:600" onclick="drillHub('${r.hub}')">${r.hub}</span></td>
+        <td><span class="pill pill-b">${r.zone}</span></td>
+        <td style="text-align:center;font-weight:700;color:var(--gold)">${r.youth}</td>
+        <td style="text-align:center;font-weight:700;color:var(--g)">${r.activations}</td>
+        <td style="text-align:center">${rb}</td>
+      </tr>`;}).join('');
+}
+
+// ── HUB DRILL-DOWN ──
+function populateHubSelector(hubNames){
+  const sel=document.getElementById('hubSelect');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Select a hub to view its data…</option>';
+  hubNames.sort().forEach(h=>{
+    const o=document.createElement('option');
+    o.value=h;o.textContent=h;
+    if(h===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function onHubSelect(){ /* just selection, load on button click */ }
+
+function drillHub(hubName){
+  switchView('hub');
+  document.getElementById('hubSelect').value=hubName;
+  loadHubData();
+}
+
+async function loadHubData(){
+  const hub=document.getElementById('hubSelect').value;
+  if(!hub){ showToast('Please select a hub first','warn'); return; }
+  const url=getUrl();
+  if(!url){ openConfig(); return; }
+
+  document.getElementById('hubLoadingState').style.display='block';
+  document.getElementById('hubContent').style.display='none';
+
+  try{
+    const resp=await fetch(url+'?action=hub&hub='+encodeURIComponent(hub));
+    const data=await resp.json();
+    if(data.status!=='success') throw new Error(data.message||'Error');
+    renderHub(data);
+    document.getElementById('hubLoadingState').style.display='none';
+    document.getElementById('hubContent').style.display='block';
+  }catch(e){
+    document.getElementById('hubLoadingState').innerHTML=
+      '<p style="color:var(--red);font-size:13px">'+e.message+'</p>';
+  }
+}
+
+function renderHub(data){
+  const t=data.totals;
+  const r=data.avgRating;
+  const stars=r?('★'.repeat(Math.round(r))+'☆'.repeat(5-Math.round(r))+' ('+r+'/5)'):'Not yet rated';
+
+  // Hub header
+  document.getElementById('hubHeader').innerHTML=
+    `<div style="font-size:18px;font-weight:800;color:var(--g);margin-bottom:4px">${data.hub}</div>
+     <div style="font-size:12px;color:var(--t3)">${t.reports} visit report(s) · Avg quality: <strong style="color:var(--gold)">${stars}</strong> · Generated ${data.generatedAt}</div>`;
+
+  // Hub stats
+  const hstats=[
+    {val:t.reports,lbl:'Total visits',col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:t.youth,lbl:'Youth reached',sub:`${t.men}M / ${t.women}F`,col:'#b8860b',bg:'#fff8e1'},
+    {val:t.activations,lbl:'Total activations',col:'#1565c0',bg:'#e3f2fd'},
+    {val:t.jobs,lbl:'Formal jobs',col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:t.interns,lbl:'Internships',col:'#6a1b9a',bg:'#f3e8fd'},
+    {val:t.coops,lbl:'Cooperatives',col:'#e65100',bg:'#fff3e0'},
+    {val:t.partners,lbl:'Partners engaged',col:'#00695c',bg:'#e0f2f1'},
+    {val:t.safetyConcerns,lbl:'Safety concerns',col:t.safetyConcerns>0?'#c62828':'#1a5c2a',bg:t.safetyConcerns>0?'#ffebee':'#e8f5eb'}
+  ];
+  document.getElementById('hubStatsGrid').innerHTML=hstats.map(s=>
+    `<div class="sc"><div class="val" style="color:${s.col}">${s.val}</div>
+     <div class="lbl">${s.lbl}</div>${s.sub?`<div class="sub">${s.sub}</div>`:''}</div>`).join('');
+
+  // Activity chart
+  const bd=data.byDate||{};
+  const dates=Object.keys(bd).sort();
+  const mx=Math.max(...Object.values(bd),1);
+  document.getElementById('hubActivityChart').innerHTML=dates.length===0?'<div class="empty">No visits yet</div>'
+    :dates.map(d=>`<div class="act-col" title="${d}: ${bd[d]} visit(s)">
+        <div class="act-bar" style="height:${Math.round((bd[d]/mx)*100)}%;min-height:4px"></div>
+        <div class="act-date">${d.substring(5)}</div></div>`).join('');
+
+  // FP chart
+  const fps=data.fpStats||[];
+  const mxfp=fps.length>0?Math.max(...fps.map(f=>f.reports),1):1;
+  document.getElementById('hubFPChart').innerHTML=fps.length===0?'<div class="empty">No data</div>'
+    :fps.map((f,i)=>`<div class="bar-wrap">
+        <div class="bar-lbl" style="width:130px" title="${f.fp}">${f.fp}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${Math.round((f.reports/mxfp)*100)}%;background:#1565c0">
+            <span class="bar-val">${f.reports} visits</span></div></div></div>`).join('');
+
+  // Quality tags
+  renderTagList('hubQualityTags', data.qualityCounts||{}, '');
+  renderTagList('hubIssueTags',   data.issueCounts  ||{}, 'tag-issue');
+  renderTagList('hubActivityTags',data.activityCounts||{}, '');
+
+  // Partner engagements
+  const pe=data.partnerEngagements||[];
+  document.getElementById('hubPartnerTbody').innerHTML=pe.length===0?'<tr><td colspan="4" class="empty">No partner engagements recorded yet</td></tr>'
+    :pe.map(p=>`<tr><td><strong>${p.name}</strong></td><td style="font-size:12px;color:var(--t3)">${p.skills||'—'}</td><td>${p.fp}</td><td>${p.date}</td></tr>`).join('');
+
+  // Visit log
+  const rows=data.rows||[];
+  document.getElementById('hubVisitTbody').innerHTML=rows.length===0?'<tr><td colspan="9" class="empty">No visits recorded</td></tr>'
+    :rows.map(r=>{
+      const urgClass=r.urgency.includes('Urgent')?'pill-r':r.urgency.includes('48')?'pill-o':'';
+      const rc=r.rating>=4?'pill-g':r.rating>=3?'pill-b':r.rating>0?'pill-r':'';
+      return `<tr>
+        <td>${r.date}</td>
+        <td>${r.fp}</td>
+        <td>${r.community}</td>
+        <td style="text-align:center;font-weight:700;color:var(--gold)">${r.youth}</td>
+        <td style="text-align:center;font-weight:700;color:var(--g)">${r.activations}</td>
+        <td style="text-align:center">${r.partners}</td>
+        <td style="text-align:center">${r.rating?`<span class="pill ${rc}">${r.rating}/5</span>`:'—'}</td>
+        <td>${r.urgency?`<span class="pill ${urgClass}" style="font-size:10px">${r.urgency}</span>`:''}</td>
+        <td style="font-size:11px;color:var(--t3)">${r.issues||'—'}</td>
+      </tr>`;}).join('');
+}
+
+function renderTagList(elId, counts, cls){
+  const el=document.getElementById(elId);
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML=sorted.length===0?'<div class="empty" style="padding:10px">None recorded</div>'
+    :sorted.map(([t,c])=>`<div class="tag ${cls}"><span>${t}</span><span class="tag-count">${c}</span></div>`).join('');
+}
+
+// ── DATA MANAGER ──
+async function loadDmData(){
+  const url=getUrl();
+  if(!url){ openConfig(); return; }
+  document.getElementById('dmLoadingState').style.display='block';
+  document.getElementById('dmList').innerHTML='';
+  try{
+    const resp=await fetch(url+'?action=listRows');
+    const data=await resp.json();
+    if(data.status!=='success') throw new Error(data.message||'Error');
+    allDmRows=data.rows||[];
+
+    // Populate hub filter
+    const hubs=[...new Set(allDmRows.map(r=>r.hubName))].sort();
+    const sel=document.getElementById('dmFilter');
+    sel.innerHTML='<option value="">All hubs</option>';
+    hubs.forEach(h=>{ const o=document.createElement('option');o.value=h;o.textContent=h;sel.appendChild(o); });
+
+    renderDmRows(allDmRows);
+    document.getElementById('dmLoadingState').style.display='none';
+  }catch(e){
+    document.getElementById('dmLoadingState').innerHTML='<p style="color:var(--red);font-size:13px;text-align:center">'+e.message+'</p>';
+  }
+}
+
+function filterDmRows(){
+  const q=document.getElementById('dmSearch').value.toLowerCase();
+  const hub=document.getElementById('dmFilter').value;
+  const filtered=allDmRows.filter(r=>{
+    const match=(r.fpName+r.hubName+r.fpZone+r.visitDate).toLowerCase().includes(q);
+    const hubMatch=!hub||r.hubName===hub;
+    return match&&hubMatch;
+  });
+  renderDmRows(filtered);
+}
+
+function renderDmRows(rows){
+  const el=document.getElementById('dmList');
+  if(!rows.length){ el.innerHTML='<div class="empty">No submissions found.</div>'; return; }
+  el.innerHTML=rows.map(r=>
+    `<div class="dm-row">
+      <div class="dm-info">
+        <strong>${r.hubName||'Unknown hub'} — ${r.fpName||'Unknown FP'}</strong>
+        <span>${r.visitDate} · ${r.fpZone} · ${r.youth} youth · ${r.activations} activations · Submitted: ${r.submittedAt}</span>
+      </div>
+      <button class="dm-del" onclick="confirmDelete(${r.rowIndex},'${(r.fpName||'').replace(/'/g,'')}',' ${(r.visitDate||'')}')">Delete</button>
+    </div>`).join('');
+}
+
+async function confirmDelete(rowIndex, fpName, date){
+  if(!confirm(`Delete this submission?\n\nFocal Person: ${fpName}\nDate: ${date}\n\nThis cannot be undone.`)) return;
+  const url=getUrl();
+  if(!url){ openConfig(); return; }
+  try{
+    const resp=await fetch(url+'?action=deleteRow&rowIndex='+rowIndex);
+    const data=await resp.json();
+    if(data.status==='success'){
+      showToast('Row deleted successfully','success');
+      allDmRows=allDmRows.filter(r=>r.rowIndex!==rowIndex);
+      filterDmRows();
+    } else {
+      showToast('Delete failed: '+data.message,'warn');
+    }
+  }catch(e){
+    showToast('Error: '+e.message,'warn');
+  }
+}
+
+// ── TABLE SORTING ──
+function sortTable(tbodyId, colIndex){
+  const tbody=document.getElementById(tbodyId);
+  const rows=Array.from(tbody.querySelectorAll('tr'));
+  const key=tbodyId+'_'+colIndex;
+  const asc=(sortState[key]=!sortState[key]);
+  rows.sort((a,b)=>{
+    const av=a.cells[colIndex]?.textContent.trim()||'';
+    const bv=b.cells[colIndex]?.textContent.trim()||'';
+    const an=parseFloat(av.replace(/[^0-9.-]/g,''));
+    const bn=parseFloat(bv.replace(/[^0-9.-]/g,''));
+    if(!isNaN(an)&&!isNaN(bn)) return asc?an-bn:bn-an;
+    return asc?av.localeCompare(bv):bv.localeCompare(av);
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+// ── TOAST ──
+let tT;
+function showToast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=type==='warn'?'#7b1a1a':'#1a1a2e';
+  el.classList.add('show');
+  clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),4000);
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  loadData();
+});
+</script>
+</body>
+</html>
