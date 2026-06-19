@@ -414,7 +414,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-heigh
 <script>
 // ── CONFIG ──
 // Hardcoded script URL — no configuration needed after deployment
-const HARDCODED_URL = 'https://script.google.com/macros/s/AKfycbxaIusqp0RuhJ56zgeaq4ukZ9FyK3HJjEY0B0Le2w8RY15hNoI34GSoOrw4CCLIttyVuA/exec';
+const HARDCODED_URL = 'https://script.google.com/macros/s/AKfycbwJPqY3pwU4eTYMZoKf1Bq3pXUdTCH918UT2byJvygzjMkRTGuhc95iLKMUremKlp_8bA/exec';
 const SK = 'yiw_dash_url_v2';
 
 // Global state
@@ -435,6 +435,11 @@ function saveConfig(){
   const u=document.getElementById('configUrl').value.trim();
   if(!u||!u.includes('script.google.com')){ alert('Please enter a valid Apps Script URL.'); return; }
   localStorage.setItem(SK,u); closeConfig(); loadData();
+}
+
+// ── UTILITIES ──
+function repeatStr(str, n){
+  var out=''; for(var i=0;i<n;i++) out+=str; return out;
 }
 
 // ── VIEW SWITCHING ──
@@ -477,97 +482,115 @@ function renderOverview(data){
 
   // Stat cards
   const stats=[
-    {val:t.reports,     lbl:'Total reports',      sub:'All submissions',         col:'#1a5c2a',bg:'#e8f5eb'},
-    {val:t.youth,       lbl:'Youth reached',      sub:`${t.men}M / ${t.women}F / ${t.pwd} PWD`, col:'#b8860b',bg:'#fff8e1'},
-    {val:t.activations, lbl:'Total activations',  sub:`${t.jobs} jobs · ${t.interns} internships`,col:'#1565c0',bg:'#e3f2fd'},
-    {val:t.partners,    lbl:'Partners engaged',   sub:'Cumulative',              col:'#00695c',bg:'#e0f2f1'},
-    {val:t.jobs,        lbl:'Formal jobs',        sub:'Placed',                  col:'#1a5c2a',bg:'#e8f5eb'},
-    {val:t.interns,     lbl:'Internships',        sub:'Secured',                 col:'#6a1b9a',bg:'#f3e8fd'},
-    {val:t.coops,       lbl:'Cooperatives',       sub:'Joined',                  col:'#e65100',bg:'#fff3e0'},
+    {val:t.reports,     lbl:'Total reports',      sub:'All submissions',                            col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:t.youth,       lbl:'Youth reached',      sub:t.men+'M / '+t.women+'F / '+t.pwd+' PWD',    col:'#b8860b',bg:'#fff8e1'},
+    {val:t.activations, lbl:'Total activations',  sub:t.jobs+' jobs / '+t.interns+' internships',  col:'#1565c0',bg:'#e3f2fd'},
+    {val:t.partners,    lbl:'Partners engaged',   sub:'Cumulative',                                 col:'#00695c',bg:'#e0f2f1'},
+    {val:t.jobs,        lbl:'Formal jobs',        sub:'Placed',                                     col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:t.interns,     lbl:'Internships',        sub:'Secured',                                    col:'#6a1b9a',bg:'#f3e8fd'},
+    {val:t.coops,       lbl:'Cooperatives',       sub:'Joined',                                     col:'#e65100',bg:'#fff3e0'},
     {val:t.safetyConcerns,lbl:'Safety concerns',  sub:t.safetyConcerns>0?'Review required':'All clear',
      col:t.safetyConcerns>0?'#c62828':'#1a5c2a',bg:t.safetyConcerns>0?'#ffebee':'#e8f5eb'}
   ];
-  document.getElementById('statsGrid').innerHTML=stats.map(s=>
-    `<div class="sc">
-       <div class="val" style="color:${s.col}">${s.val.toLocaleString()}</div>
-       <div class="lbl">${s.lbl}</div>
-       <div class="sub">${s.sub}</div>
-     </div>`).join('');
+  document.getElementById('statsGrid').innerHTML=stats.map(function(s){
+    return '<div class="sc">'+
+      '<div class="val" style="color:'+s.col+'">'+s.val.toLocaleString()+'</div>'+
+      '<div class="lbl">'+s.lbl+'</div>'+
+      '<div class="sub">'+s.sub+'</div>'+
+      '</div>';
+  }).join('');
 
   // Alerts
   let ah='';
-  if(data.urgentItems?.length>0){
-    ah+=`<div class="alert alert-r"><div class="a-ttl">⚠ ${data.urgentItems.length} Urgent Action Required</div>
-      ${data.urgentItems.map(u=>`<div class="a-item"><strong>${u.hub} — ${u.fp} (${u.date})</strong>
-        <span style="color:var(--red)">${u.urgency}</span>
-        ${u.issues?`<br/><span style="color:var(--t3)">${u.issues}</span>`:''}</div>`).join('')}</div>`;
+  if(data.urgentItems&&data.urgentItems.length>0){
+    var uItems=data.urgentItems.map(function(u){
+      return '<div class="a-item"><strong>'+u.hub+' — '+u.fp+' ('+u.date+')</strong>'+
+             '<span style="color:var(--red)">'+u.urgency+'</span>'+
+             (u.issues?'<br/><span style="color:var(--t3)">'+u.issues+'</span>':'')+
+             '</div>';
+    }).join('');
+    ah+='<div class="alert alert-r"><div class="a-ttl">⚠ '+data.urgentItems.length+' Urgent Action Required</div>'+uItems+'</div>';
   }
-  if(data.lowRated?.length>0){
-    ah+=`<div class="alert alert-o"><div class="a-ttl">Hub Quality Concerns (Rating ≤ 2/5)</div>
-      ${data.lowRated.map(l=>`<div class="a-item"><strong>${l.hub}</strong> — ${l.fp} (${l.date}) — Rating: ${l.rating}/5</div>`).join('')}</div>`;
+  if(data.lowRated&&data.lowRated.length>0){
+    var lItems=data.lowRated.map(function(l){
+      return '<div class="a-item"><strong>'+l.hub+'</strong> — '+l.fp+' ('+l.date+') — Rating: '+l.rating+'/5</div>';
+    }).join('');
+    ah+='<div class="alert alert-o"><div class="a-ttl">Hub Quality Concerns (Rating 2/5 or below)</div>'+lItems+'</div>';
   }
   document.getElementById('alertsSection').innerHTML=ah;
 
   // Activity chart
-  const byDate=data.byDate||{};
-  const dates=Object.keys(byDate).sort();
-  const maxV=Math.max(...Object.values(byDate),1);
-  const actEl=document.getElementById('activityChart');
-  actEl.innerHTML=dates.length===0?'<div class="empty">No recent activity</div>'
-    :dates.map(d=>`<div class="act-col" title="${d}: ${byDate[d]} report(s)">
-        <div class="act-bar" style="height:${Math.round((byDate[d]/maxV)*100)}%;min-height:4px"></div>
-        <div class="act-date">${d.substring(5)}</div></div>`).join('');
+  var byDate=data.byDate||{};
+  var adates=Object.keys(byDate).sort();
+  var maxV=adates.length>0?Math.max.apply(null,adates.map(function(d){return byDate[d];})):1;
+  var actEl=document.getElementById('activityChart');
+  actEl.innerHTML=adates.length===0?'<div class="empty">No recent activity</div>'
+    :adates.map(function(d){
+      return '<div class="act-col" title="'+d+': '+byDate[d]+' report(s)">'+
+        '<div class="act-bar" style="height:'+Math.round((byDate[d]/maxV)*100)+'%;min-height:4px"></div>'+
+        '<div class="act-date">'+d.substring(5)+'</div></div>';
+    }).join('');
 
   // Zone chart
-  const zones=data.zoneStats||[];
-  const maxZ=zones.length>0?Math.max(...zones.map(z=>z.reports),1):1;
-  const zcols=['#1a5c2a','#2d7a3a','#4caf50','#1565c0','#00695c','#b8860b','#e65100','#6a1b9a'];
+  var zones=data.zoneStats||[];
+  var maxZ=zones.length>0?Math.max.apply(null,zones.map(function(z){return z.reports;})):1;
+  var zcols=['#1a5c2a','#2d7a3a','#4caf50','#1565c0','#00695c','#b8860b','#e65100','#6a1b9a'];
   document.getElementById('zoneChart').innerHTML=zones.length===0?'<div class="empty">No zone data</div>'
-    :zones.map((z,i)=>`<div class="bar-wrap">
-        <div class="bar-lbl" style="width:140px" title="${z.zone}">${z.zone}</div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${Math.round((z.reports/maxZ)*100)}%;background:${zcols[i%zcols.length]}">
-            <span class="bar-val">${z.reports} (${z.youth} youth)</span></div></div></div>`).join('');
+    :zones.map(function(z,i){
+      return '<div class="bar-wrap">'+
+        '<div class="bar-lbl" style="width:140px" title="'+z.zone+'">'+z.zone+'</div>'+
+        '<div class="bar-track">'+
+        '<div class="bar-fill" style="width:'+Math.round((z.reports/maxZ)*100)+'%;background:'+zcols[i%zcols.length]+'">'+
+        '<span class="bar-val">'+z.reports+' ('+z.youth+' youth)</span></div></div></div>';
+    }).join('');
 
   // Success stories
-  const stories=data.successStories||[];
-  document.getElementById('storiesSection').innerHTML=stories.length===0?''
-    :`<div class="sec"><div class="sec-ttl">Recent success stories</div>
-      <div class="alert alert-g"><div class="a-ttl">Highlights from the field</div>
-      ${stories.map(s=>`<div class="a-item"><strong>${s.fp} at ${s.hub} (${s.date})</strong>${s.story}</div>`).join('')}
-      </div></div>`;
+  var stories=data.successStories||[];
+  if(stories.length===0){
+    document.getElementById('storiesSection').innerHTML='';
+  } else {
+    var sItems=stories.map(function(s){
+      return '<div class="a-item"><strong>'+s.fp+' at '+s.hub+' ('+s.date+')</strong>'+s.story+'</div>';
+    }).join('');
+    document.getElementById('storiesSection').innerHTML=
+      '<div class="sec"><div class="sec-ttl">Recent success stories</div>'+
+      '<div class="alert alert-g"><div class="a-ttl">Highlights from the field</div>'+sItems+'</div></div>';
+  }
 
   // Hub table
-  const hubs=data.hubStats||[];
+  var hubs=data.hubStats||[];
   document.getElementById('hubTbody').innerHTML=hubs.length===0?'<tr><td colspan="7" class="empty">No hub data yet</td></tr>'
-    :hubs.map(h=>{
-      const r=h.avgRating;
-      const stars=r?('★'.repeat(Math.round(r))+'☆'.repeat(5-Math.round(r))+' '+r):'—';
-      const rclass=r>=4?'pill-g':r>=3?'pill-b':r?'pill-r':'';
-      return `<tr>
-        <td><strong style="cursor:pointer;color:var(--g)" onclick="drillHub('${h.hub}')">${h.hub}</strong></td>
-        <td style="text-align:center"><span class="pill pill-g">${h.reports}</span></td>
-        <td style="text-align:center;font-weight:700;color:var(--gold)">${h.youth.toLocaleString()}</td>
-        <td style="text-align:center;font-weight:700;color:var(--g)">${h.activations.toLocaleString()}</td>
-        <td style="text-align:center">${h.partners.toLocaleString()}</td>
-        <td style="text-align:center"><span class="pill pill-b">${h.focalPersons}</span></td>
-        <td style="text-align:center"><span class="${rclass?'pill '+rclass:''}">${stars}</span></td>
-      </tr>`;}).join('');
+    :hubs.map(function(h){
+      var r=h.avgRating;
+      var stars=r?(repeatStr('★',Math.round(r))+repeatStr('☆',5-Math.round(r))+' '+r):'—';
+      var rclass=r>=4?'pill-g':r>=3?'pill-b':r?'pill-r':'';
+      return '<tr>'+
+        '<td><strong style="cursor:pointer;color:var(--g)" onclick="drillHub(\''+h.hub+'\')">'+h.hub+'</strong></td>'+
+        '<td style="text-align:center"><span class="pill pill-g">'+h.reports+'</span></td>'+
+        '<td style="text-align:center;font-weight:700;color:var(--gold)">'+h.youth.toLocaleString()+'</td>'+
+        '<td style="text-align:center;font-weight:700;color:var(--g)">'+h.activations.toLocaleString()+'</td>'+
+        '<td style="text-align:center">'+h.partners.toLocaleString()+'</td>'+
+        '<td style="text-align:center"><span class="pill pill-b">'+h.focalPersons+'</span></td>'+
+        '<td style="text-align:center">'+(rclass?'<span class="pill '+rclass+'">'+stars+'</span>':stars)+'</td>'+
+        '</tr>';
+    }).join('');
 
   // Recent reports
-  const recent=data.recentReports||[];
+  var recent=data.recentReports||[];
   document.getElementById('recentTbody').innerHTML=recent.length===0?'<tr><td colspan="7" class="empty">No recent reports</td></tr>'
-    :recent.map(r=>{
-      const rb=r.rating?`<span class="pill ${r.rating>=4?'pill-g':r.rating>=3?'pill-b':'pill-r'}">${r.rating}/5</span>`:'<span style="color:var(--t3)">—</span>';
-      return `<tr>
-        <td>${r.date||'—'}</td>
-        <td>${r.fp}</td>
-        <td><span style="cursor:pointer;color:var(--g);font-weight:600" onclick="drillHub('${r.hub}')">${r.hub}</span></td>
-        <td><span class="pill pill-b">${r.zone}</span></td>
-        <td style="text-align:center;font-weight:700;color:var(--gold)">${r.youth}</td>
-        <td style="text-align:center;font-weight:700;color:var(--g)">${r.activations}</td>
-        <td style="text-align:center">${rb}</td>
-      </tr>`;}).join('');
+    :recent.map(function(r){
+      var rc=r.rating>=4?'pill-g':r.rating>=3?'pill-b':'pill-r';
+      var rb=r.rating?('<span class="pill '+rc+'">'+r.rating+'/5</span>'):'<span style="color:var(--t3)">—</span>';
+      return '<tr>'+
+        '<td>'+(r.date||'—')+'</td>'+
+        '<td>'+r.fp+'</td>'+
+        '<td><span style="cursor:pointer;color:var(--g);font-weight:600" onclick="drillHub(\''+r.hub+'\')">'+r.hub+'</span></td>'+
+        '<td><span class="pill pill-b">'+r.zone+'</span></td>'+
+        '<td style="text-align:center;font-weight:700;color:var(--gold)">'+r.youth+'</td>'+
+        '<td style="text-align:center;font-weight:700;color:var(--g)">'+r.activations+'</td>'+
+        '<td style="text-align:center">'+rb+'</td>'+
+        '</tr>';
+    }).join('');
 }
 
 // ── HUB DRILL-DOWN ──
@@ -620,77 +643,95 @@ function renderHub(data){
 
   // Hub header
   document.getElementById('hubHeader').innerHTML=
-    `<div style="font-size:18px;font-weight:800;color:var(--g);margin-bottom:4px">${data.hub}</div>
-     <div style="font-size:12px;color:var(--t3)">${t.reports} visit report(s) · Avg quality: <strong style="color:var(--gold)">${stars}</strong> · Generated ${data.generatedAt}</div>`;
+    '<div style="font-size:18px;font-weight:800;color:var(--g);margin-bottom:4px">'+data.hub+'</div>'+
+    '<div style="font-size:12px;color:var(--t3)">'+t.reports+' visit report(s) · Avg quality: <strong style="color:var(--gold)">'+stars+'</strong> · Generated '+data.generatedAt+'</div>';
 
   // Hub stats
-  const hstats=[
-    {val:t.reports,lbl:'Total visits',col:'#1a5c2a',bg:'#e8f5eb'},
-    {val:t.youth,lbl:'Youth reached',sub:`${t.men}M / ${t.women}F`,col:'#b8860b',bg:'#fff8e1'},
-    {val:t.activations,lbl:'Total activations',col:'#1565c0',bg:'#e3f2fd'},
-    {val:t.jobs,lbl:'Formal jobs',col:'#1a5c2a',bg:'#e8f5eb'},
-    {val:t.interns,lbl:'Internships',col:'#6a1b9a',bg:'#f3e8fd'},
-    {val:t.coops,lbl:'Cooperatives',col:'#e65100',bg:'#fff3e0'},
-    {val:t.partners,lbl:'Partners engaged',col:'#00695c',bg:'#e0f2f1'},
-    {val:t.safetyConcerns,lbl:'Safety concerns',col:t.safetyConcerns>0?'#c62828':'#1a5c2a',bg:t.safetyConcerns>0?'#ffebee':'#e8f5eb'}
+  var hstats=[
+    {val:t.reports,     lbl:'Total visits',       col:'#1a5c2a',bg:'#e8f5eb',sub:''},
+    {val:t.youth,       lbl:'Youth reached',      col:'#b8860b',bg:'#fff8e1',sub:t.men+'M / '+t.women+'F'},
+    {val:t.activations, lbl:'Total activations',  col:'#1565c0',bg:'#e3f2fd',sub:''},
+    {val:t.jobs,        lbl:'Formal jobs',         col:'#1a5c2a',bg:'#e8f5eb',sub:''},
+    {val:t.interns,     lbl:'Internships',         col:'#6a1b9a',bg:'#f3e8fd',sub:''},
+    {val:t.coops,       lbl:'Cooperatives',        col:'#e65100',bg:'#fff3e0',sub:''},
+    {val:t.partners,    lbl:'Partners engaged',    col:'#00695c',bg:'#e0f2f1',sub:''},
+    {val:t.safetyConcerns,lbl:'Safety concerns',  col:t.safetyConcerns>0?'#c62828':'#1a5c2a',bg:t.safetyConcerns>0?'#ffebee':'#e8f5eb',sub:''}
   ];
-  document.getElementById('hubStatsGrid').innerHTML=hstats.map(s=>
-    `<div class="sc"><div class="val" style="color:${s.col}">${s.val}</div>
-     <div class="lbl">${s.lbl}</div>${s.sub?`<div class="sub">${s.sub}</div>`:''}</div>`).join('');
+  document.getElementById('hubStatsGrid').innerHTML=hstats.map(function(s){
+    return '<div class="sc">'+
+      '<div class="val" style="color:'+s.col+'">'+s.val+'</div>'+
+      '<div class="lbl">'+s.lbl+'</div>'+
+      (s.sub?'<div class="sub">'+s.sub+'</div>':'')+
+      '</div>';
+  }).join('');
 
   // Activity chart
-  const bd=data.byDate||{};
-  const dates=Object.keys(bd).sort();
-  const mx=Math.max(...Object.values(bd),1);
+  var bd=data.byDate||{};
+  var dates=Object.keys(bd).sort();
+  var mx=dates.length>0?Math.max.apply(null,dates.map(function(d){return bd[d];})): 1;
   document.getElementById('hubActivityChart').innerHTML=dates.length===0?'<div class="empty">No visits yet</div>'
-    :dates.map(d=>`<div class="act-col" title="${d}: ${bd[d]} visit(s)">
-        <div class="act-bar" style="height:${Math.round((bd[d]/mx)*100)}%;min-height:4px"></div>
-        <div class="act-date">${d.substring(5)}</div></div>`).join('');
+    :dates.map(function(d){
+      return '<div class="act-col" title="'+d+': '+bd[d]+' visit(s)">'+
+        '<div class="act-bar" style="height:'+Math.round((bd[d]/mx)*100)+'%;min-height:4px"></div>'+
+        '<div class="act-date">'+d.substring(5)+'</div></div>';
+    }).join('');
 
   // FP chart
-  const fps=data.fpStats||[];
-  const mxfp=fps.length>0?Math.max(...fps.map(f=>f.reports),1):1;
+  var fps=data.fpStats||[];
+  var mxfp=fps.length>0?Math.max.apply(null,fps.map(function(f){return f.reports;})):1;
   document.getElementById('hubFPChart').innerHTML=fps.length===0?'<div class="empty">No data</div>'
-    :fps.map((f,i)=>`<div class="bar-wrap">
-        <div class="bar-lbl" style="width:130px" title="${f.fp}">${f.fp}</div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${Math.round((f.reports/mxfp)*100)}%;background:#1565c0">
-            <span class="bar-val">${f.reports} visits</span></div></div></div>`).join('');
+    :fps.map(function(f){
+      return '<div class="bar-wrap">'+
+        '<div class="bar-lbl" style="width:130px" title="'+f.fp+'">'+f.fp+'</div>'+
+        '<div class="bar-track">'+
+        '<div class="bar-fill" style="width:'+Math.round((f.reports/mxfp)*100)+'%;background:#1565c0">'+
+        '<span class="bar-val">'+f.reports+' visits</span></div></div></div>';
+    }).join('');
 
   // Quality tags
-  renderTagList('hubQualityTags', data.qualityCounts||{}, '');
-  renderTagList('hubIssueTags',   data.issueCounts  ||{}, 'tag-issue');
-  renderTagList('hubActivityTags',data.activityCounts||{}, '');
+  renderTagList('hubQualityTags',  data.qualityCounts ||{}, '');
+  renderTagList('hubIssueTags',    data.issueCounts   ||{}, 'tag-issue');
+  renderTagList('hubActivityTags', data.activityCounts||{}, '');
 
   // Partner engagements
-  const pe=data.partnerEngagements||[];
+  var pe=data.partnerEngagements||[];
   document.getElementById('hubPartnerTbody').innerHTML=pe.length===0?'<tr><td colspan="4" class="empty">No partner engagements recorded yet</td></tr>'
-    :pe.map(p=>`<tr><td><strong>${p.name}</strong></td><td style="font-size:12px;color:var(--t3)">${p.skills||'—'}</td><td>${p.fp}</td><td>${p.date}</td></tr>`).join('');
+    :pe.map(function(p){
+      return '<tr><td><strong>'+(p.name||'—')+'</strong></td>'+
+        '<td style="font-size:12px;color:var(--t3)">'+(p.skills||'—')+'</td>'+
+        '<td>'+(p.fp||'—')+'</td>'+
+        '<td>'+(p.date||'—')+'</td></tr>';
+    }).join('');
 
   // Visit log
-  const rows=data.rows||[];
+  var rows=data.rows||[];
   document.getElementById('hubVisitTbody').innerHTML=rows.length===0?'<tr><td colspan="9" class="empty">No visits recorded</td></tr>'
-    :rows.map(r=>{
-      const urgClass=r.urgency.includes('Urgent')?'pill-r':r.urgency.includes('48')?'pill-o':'';
-      const rc=r.rating>=4?'pill-g':r.rating>=3?'pill-b':r.rating>0?'pill-r':'';
-      return `<tr>
-        <td>${r.date}</td>
-        <td>${r.fp}</td>
-        <td>${r.community}</td>
-        <td style="text-align:center;font-weight:700;color:var(--gold)">${r.youth}</td>
-        <td style="text-align:center;font-weight:700;color:var(--g)">${r.activations}</td>
-        <td style="text-align:center">${r.partners}</td>
-        <td style="text-align:center">${r.rating?`<span class="pill ${rc}">${r.rating}/5</span>`:'—'}</td>
-        <td>${r.urgency?`<span class="pill ${urgClass}" style="font-size:10px">${r.urgency}</span>`:''}</td>
-        <td style="font-size:11px;color:var(--t3)">${r.issues||'—'}</td>
-      </tr>`;}).join('');
+    :rows.map(function(r){
+      var urgClass=r.urgency&&r.urgency.indexOf('Urgent')!==-1?'pill-r':r.urgency&&r.urgency.indexOf('48')!==-1?'pill-o':'';
+      var rc=r.rating>=4?'pill-g':r.rating>=3?'pill-b':r.rating>0?'pill-r':'';
+      var ratingCell=r.rating?('<span class="pill '+rc+'">'+r.rating+'/5</span>'):'—';
+      var urgCell=r.urgency?('<span class="pill '+urgClass+'" style="font-size:10px">'+r.urgency+'</span>'):'';
+      return '<tr>'+
+        '<td>'+r.date+'</td>'+
+        '<td>'+r.fp+'</td>'+
+        '<td>'+r.community+'</td>'+
+        '<td style="text-align:center;font-weight:700;color:var(--gold)">'+r.youth+'</td>'+
+        '<td style="text-align:center;font-weight:700;color:var(--g)">'+r.activations+'</td>'+
+        '<td style="text-align:center">'+r.partners+'</td>'+
+        '<td style="text-align:center">'+ratingCell+'</td>'+
+        '<td>'+urgCell+'</td>'+
+        '<td style="font-size:11px;color:var(--t3)">'+(r.issues||'—')+'</td>'+
+        '</tr>';
+    }).join('');
 }
 
 function renderTagList(elId, counts, cls){
-  const el=document.getElementById(elId);
-  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  var el=document.getElementById(elId);
+  var sorted=Object.entries(counts).sort(function(a,b){return b[1]-a[1];});
   el.innerHTML=sorted.length===0?'<div class="empty" style="padding:10px">None recorded</div>'
-    :sorted.map(([t,c])=>`<div class="tag ${cls}"><span>${t}</span><span class="tag-count">${c}</span></div>`).join('');
+    :sorted.map(function(entry){
+      return '<div class="tag '+cls+'"><span>'+entry[0]+'</span><span class="tag-count">'+entry[1]+'</span></div>';
+    }).join('');
 }
 
 // ── DATA MANAGER ──
@@ -730,20 +771,23 @@ function filterDmRows(){
 }
 
 function renderDmRows(rows){
-  const el=document.getElementById('dmList');
+  var el=document.getElementById('dmList');
   if(!rows.length){ el.innerHTML='<div class="empty">No submissions found.</div>'; return; }
-  el.innerHTML=rows.map(r=>
-    `<div class="dm-row">
-      <div class="dm-info">
-        <strong>${r.hubName||'Unknown hub'} — ${r.fpName||'Unknown FP'}</strong>
-        <span>${r.visitDate} · ${r.fpZone} · ${r.youth} youth · ${r.activations} activations · Submitted: ${r.submittedAt}</span>
-      </div>
-      <button class="dm-del" onclick="confirmDelete(${r.rowIndex},'${(r.fpName||'').replace(/'/g,'')}',' ${(r.visitDate||'')}')">Delete</button>
-    </div>`).join('');
+  el.innerHTML=rows.map(function(r){
+    var safeName=(r.fpName||'').replace(/'/g,'');
+    var safeDate=(r.visitDate||'');
+    return '<div class="dm-row">'+
+      '<div class="dm-info">'+
+        '<strong>'+(r.hubName||'Unknown hub')+' — '+(r.fpName||'Unknown FP')+'</strong>'+
+        '<span>'+r.visitDate+' · '+r.fpZone+' · '+r.youth+' youth · '+r.activations+' activations · Submitted: '+r.submittedAt+'</span>'+
+      '</div>'+
+      '<button class="dm-del" onclick="confirmDelete('+r.rowIndex+',\''+safeName+'\',\''+safeDate+'\')">Delete</button>'+
+    '</div>';
+  }).join('');
 }
 
 async function confirmDelete(rowIndex, fpName, date){
-  if(!confirm(`Delete this submission?\n\nFocal Person: ${fpName}\nDate: ${date}\n\nThis cannot be undone.`)) return;
+  if(!confirm('Delete this submission?\n\nFocal Person: '+fpName+'\nDate: '+date+'\n\nThis cannot be undone.')) return;
   const url=getUrl();
   if(!url){ openConfig(); return; }
   try{
