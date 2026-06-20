@@ -49,8 +49,47 @@ function doGet(e) {
   if (action === 'hub')           return getHubData(params.hub || '');
   if (action === 'deleteRow')     return deleteTestRow(params.rowIndex || '');
   if (action === 'listRows')      return listAllRows();
+  if (action === 'diagnose')      return diagnoseHeaders();
 
   return jsonOut({ status: 'ok', message: 'YiW Script is live.', version: 'v4-dashboard-2026-06-15' });
+}
+
+// Diagnostic — shows exactly what's in row 1 of your sheet right now,
+// with each column's index, so we can see precisely what's misaligned.
+function diagnoseHeaders() {
+  try {
+    var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!existing.hasNext()) return jsonOut({ status:'error', message:'No master sheet found.' });
+    var ss    = SpreadsheetApp.open(existing.next());
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet) return jsonOut({ status:'error', message:'Field Reports tab not found.' });
+
+    var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var sampleRow = sheet.getLastRow() >= 2
+      ? sheet.getRange(2, 1, 1, sheet.getLastColumn()).getValues()[0]
+      : [];
+
+    var cols = [];
+    for (var i = 0; i < headerRow.length; i++) {
+      cols.push({
+        index: i,
+        header: String(headerRow[i]),
+        sampleValue: sampleRow[i] !== undefined ? String(sampleRow[i]).substring(0,60) : ''
+      });
+    }
+
+    var dynMap = getDynamicColMap(headerRow);
+
+    return jsonOut({
+      status:'success',
+      totalColumns: headerRow.length,
+      totalRows: sheet.getLastRow() - 1,
+      columns: cols,
+      resolvedMap: dynMap
+    });
+  } catch(err) {
+    return jsonOut({ status:'error', message: err.toString() });
+  }
 }
 
 
@@ -68,7 +107,7 @@ function getDashboardData() {
     if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status: 'error', message: 'No submissions yet.' });
 
     var data = sheet.getDataRange().getValues();
-    var C = getColMap();
+    var C = getDynamicColMap(data[0]); // read actual headers from row 1
     var now = new Date();
     var thirtyDaysAgo = new Date(now.getTime() - 30*24*60*60*1000);
 
@@ -208,7 +247,7 @@ function getHubData(hubName) {
     if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status:'error', message:'No data yet.' });
 
     var data = sheet.getDataRange().getValues();
-    var C = getColMap();
+    var C = getDynamicColMap(data[0]); // dynamic from actual headers
 
     var rows = [], totals = {
       reports:0, youth:0, men:0, women:0, pwd:0,
@@ -337,7 +376,7 @@ function listAllRows() {
     if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status:'success', rows:[] });
 
     var data = sheet.getDataRange().getValues();
-    var C = getColMap();
+    var C = getDynamicColMap(data[0]); // dynamic from actual headers
     var rows = [];
 
     for (var r = 1; r < data.length; r++) {
@@ -409,7 +448,7 @@ function deleteTestRow(rowIndexStr) {
 // ══════════════════════════════════════════════════════════════
 
 function getColMap() {
-  // Columns match formatMasterSheet headers exactly (0-based)
+  // Static map matching current appendToMasterSheet column order (new submissions)
   return {
     submittedAt:0,        // Submitted At
     fpName:1,             // Field Personnel Name
@@ -457,6 +496,87 @@ function getColMap() {
     safeDetail:43,        // Concern Detail
     finalNotes:44         // Final Notes
   };
+}
+
+// Dynamic column map — reads actual header row from sheet
+// Used to handle old rows written by previous script versions
+function getDynamicColMap(headers) {
+  var map = {
+    submittedAt:-1, fpName:-1, fpPhone:-1, fpZone:-1,
+    visitDate:-1, visitType:-1, hubName:-1, community:-1, trainingCentre:-1,
+    tArr:-1, tDep:-1,
+    youngMen:-1, youngWomen:-1, pwd:-1, staff:-1, trainer:-1, totalYouth:-1,
+    formalJobs:-1, internships:-1, coops:-1, furtherTraining:-1, totalActivations:-1,
+    enrolM:-1, enrolF:-1, enrolCourse:-1, empName:-1, empSector:-1,
+    rating:-1, qualityIndicators:-1, issues:-1, facilities:-1, challenges:-1,
+    partnersCount:-1, totalFiles:-1, attDocs:-1, finDocs:-1, mous:-1,
+    trackSheets:-1, photos:-1, videos:-1,
+    safeConfirmed:-1, safeDetails:-1, safetyConcern:-1, safeDetail:-1, finalNotes:-1
+  };
+
+  // Header text → map key lookup
+  var lookup = {
+    'submitted at':         'submittedAt',
+    'field personnel name': 'fpName',
+    'fp name':              'fpName',
+    'phone':                'fpPhone',
+    'zone':                 'fpZone',
+    'visit date':           'visitDate',
+    'visit type':           'visitType',
+    'hub / tsp':            'hubName',
+    'hub name':             'hubName',
+    'community':            'community',
+    'training centre':      'trainingCentre',
+    'time arrived':         'tArr',
+    'time departed':        'tDep',
+    'male':                 'youngMen',
+    'young men':            'youngMen',
+    'female':               'youngWomen',
+    'young women':          'youngWomen',
+    'pwd':                  'pwd',
+    'staff':                'staff',
+    'number of trainers':   'trainer',
+    'trainers':             'trainer',
+    'total youth':          'totalYouth',
+    'number of formal jobs':'formalJobs',
+    'formal jobs':          'formalJobs',
+    'internships':          'internships',
+    'cooperatives':         'coops',
+    'further training':     'furtherTraining',
+    'total activations':    'totalActivations',
+    'enrolments (m)':       'enrolM',
+    'enrolments (f)':       'enrolF',
+    'course':               'enrolCourse',
+    'employer':             'empName',
+    'sector':               'empSector',
+    'hub rating':           'rating',
+    'quality indicators':   'qualityIndicators',
+    'issues flagged':       'issues',
+    'facilities':           'facilities',
+    'challenges':           'challenges',
+    'partners count':       'partnersCount',
+    'total files':          'totalFiles',
+    'attendance docs':      'attDocs',
+    'financial docs':       'finDocs',
+    'mous':                 'mous',
+    'tracking sheets':      'trackSheets',
+    'photos':               'photos',
+    'videos':               'videos',
+    'safeguarding items':   'safeConfirmed',
+    'safeguarding details': 'safeDetails',
+    'concern raised':       'safetyConcern',
+    'concern detail':       'safeDetail',
+    'final notes':          'finalNotes'
+  };
+
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i]).toLowerCase().trim();
+    if (lookup[h] !== undefined) {
+      map[lookup[h]] = i;
+    }
+  }
+
+  return map;
 }
 
 
