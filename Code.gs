@@ -1032,20 +1032,52 @@ function formatMasterSheet(sheet) {
 }
 
 // Run this once manually to fix headers on an existing sheet without deleting data
-function resetMasterSheetHeaders() {
+// ══════════════════════════════════════════════════════════════
+//  FULL SHEET REPAIR — archives broken old data, rebuilds clean
+//  Run this ONCE manually from the Apps Script editor.
+//  Old rows are NOT deleted — they're copied to a new tab called
+//  "Archived (Pre-Repair)" so nothing is lost, just removed from
+//  the dashboard's view.
+// ══════════════════════════════════════════════════════════════
+
+function repairMasterSheet() {
   var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
   if (!existing.hasNext()) { Logger.log('No master sheet found.'); return; }
   var ss    = SpreadsheetApp.open(existing.next());
   var sheet = ss.getSheetByName('Field Reports');
   if (!sheet) { Logger.log('Field Reports tab not found.'); return; }
 
-  // Remove existing filter before reformatting
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+
+  // 1. Archive everything as-is (raw copy, including the messy duplicate columns)
+  if (lastRow > 0) {
+    var archiveName = 'Archived (Pre-Repair) ' + Utilities.formatDate(new Date(), 'GMT', 'yyyy-MM-dd HH-mm');
+    var oldData = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    var archiveSheet = ss.insertSheet(archiveName);
+    archiveSheet.getRange(1, 1, oldData.length, lastCol).setValues(oldData);
+    Logger.log('Archived ' + (lastRow - 1) + ' old rows (plus header) to tab: ' + archiveName);
+  }
+
+  // 2. Clear the Field Reports sheet completely (remove all columns/rows/filters)
   var filter = sheet.getFilter();
   if (filter) filter.remove();
+  sheet.clear();
+  sheet.clearFormats();
 
+  // 3. Write a single clean header row with NO duplicates
   formatMasterSheet(sheet);
+
   SpreadsheetApp.flush();
-  Logger.log('Master sheet headers reset successfully. ' + sheet.getLastRow() + ' rows of data preserved.');
+  Logger.log('Master sheet repaired. Old data archived. Field Reports tab is now clean with ' +
+             sheet.getLastColumn() + ' columns and 0 data rows.');
+  Logger.log('New submissions will populate this clean sheet going forward.');
+}
+
+// Keep the old name working too, but point it at the full repair now —
+// a header-only reset doesn't fix shifted data, so we always do a full repair.
+function resetMasterSheetHeaders() {
+  repairMasterSheet();
 }
 
 
