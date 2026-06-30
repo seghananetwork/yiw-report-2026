@@ -1040,6 +1040,146 @@ function formatMasterSheet(sheet) {
 //  the dashboard's view.
 // ══════════════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════════════
+//  RECOVER ARCHIVED DATA — re-aligns old shifted rows and
+//  restores them into the clean Field Reports sheet.
+//  Old rows had an extra "Email" column after Phone, shifting
+//  everything from Zone onward by +1. This function detects
+//  that pattern and corrects it before restoring.
+//
+//  Run this ONCE after repairMasterSheet(). It finds the most
+//  recent "Archived (Pre-Repair)" tab automatically.
+// ══════════════════════════════════════════════════════════════
+
+// Diagnostic — dumps one raw row from the archive exactly as stored,
+// with index numbers, so we can map old→new positions precisely.
+function diagnoseArchiveRow() {
+  var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+  if (!existing.hasNext()) { Logger.log('No master sheet found.'); return; }
+  var ss = SpreadsheetApp.open(existing.next());
+
+  var sheets = ss.getSheets();
+  var archiveSheet = null, archiveName = '';
+  for (var i = 0; i < sheets.length; i++) {
+    var n = sheets[i].getName();
+    if (n.indexOf('Archived (Pre-Repair)') === 0) {
+      if (!archiveSheet || n > archiveName) { archiveSheet = sheets[i]; archiveName = n; }
+    }
+  }
+  if (!archiveSheet) { Logger.log('No archive tab found.'); return; }
+
+  var data = archiveSheet.getDataRange().getValues();
+  var headerRow = data[0];
+  var sampleRow = data[1];
+
+  var out = [];
+  for (var i = 0; i < Math.max(headerRow.length, sampleRow.length); i++) {
+    out.push(i + ': [' + String(headerRow[i]||'') + '] = ' + String(sampleRow[i]||''));
+  }
+  Logger.log('Archive: ' + archiveName + ' | Total columns: ' + headerRow.length);
+  Logger.log(out.join('\n'));
+}
+
+function recoverArchivedData() {
+  var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+  if (!existing.hasNext()) { Logger.log('No master sheet found.'); return; }
+  var ss = SpreadsheetApp.open(existing.next());
+
+  // Find the most recent archive tab
+  var sheets = ss.getSheets();
+  var archiveSheet = null;
+  var archiveName = '';
+  for (var i = 0; i < sheets.length; i++) {
+    var n = sheets[i].getName();
+    if (n.indexOf('Archived (Pre-Repair)') === 0) {
+      if (!archiveSheet || n > archiveName) { archiveSheet = sheets[i]; archiveName = n; }
+    }
+  }
+  if (!archiveSheet) { Logger.log('No archive tab found.'); return; }
+
+  var liveSheet = ss.getSheetByName('Field Reports');
+  if (!liveSheet) { Logger.log('Field Reports tab not found — run repairMasterSheet() first.'); return; }
+
+  var archData = archiveSheet.getDataRange().getValues();
+  if (archData.length < 2) { Logger.log('Archive is empty, nothing to recover.'); return; }
+
+  // Reset Field Reports to empty before re-inserting (avoid duplicating
+  // if this function is run more than once)
+  var liveLastRow = liveSheet.getLastRow();
+  if (liveLastRow > 1) {
+    liveSheet.getRange(2, 1, liveLastRow - 1, liveSheet.getLastColumn()).clearContent();
+  }
+
+  var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var recovered = 0;
+  var skipped = 0;
+
+  for (var r = 1; r < archData.length; r++) {
+    var row = archData[r];
+    if (!row[1] && !row[6]) { skipped++; continue; } // empty row, skip
+
+    // CONFIRMED layout for old-schema rows (verified against real data with user):
+    // Old columns 0-2:   Submitted At, FP Name, Phone           -> no shift
+    // Old column  3:     Email (extra, dropped)
+    // Old columns 4-9:   Zone, Visit Date, Visit Type, Hub, Community, Training Centre  -> shift -1 (i.e. read from old+1... see below)
+    // Old column  10:    Hub Contact Name (extra, dropped)
+    // Old column  11:    (was showing contact name in sample - extra, dropped)
+    // Old column  12:    Hub Contact Phone (extra, dropped)
+    // Old columns 13-14: Time Arrived, Time Departed            -> these map to new tArr/tDep
+    // Old columns 15+:   Male, Female, PWD, Staff, Trainers...  -> continue sequentially from old col 15
+    var val3 = String(row[3] || '').trim();
+    var isOldSchema = emailPattern.test(val3);
+
+    function get(newIdx) {
+      if (!isOldSchema) return newIdx < row.length ? row[newIdx] : '';
+      // Old-schema explicit position map (0-indexed, confirmed against real sample row)
+      var oldSchemaMap = [
+        0,  1,  2,           // submittedAt, fpName, phone (cols 0-2, unshifted)
+        4,  5,  6,  7,  8,  9, // zone, visitDate, visitType, hubName, community, trainingCentre (old 4-9)
+        13, 14,               // tArr, tDep (old 13-14, confirmed via user — actual time values)
+        15, 16, 17, 18, 19,    // male, female, pwd, staff, trainer (old 15-19, continuing sequentially)
+        20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+        36, 37, 38, 39, 40, 41, 42, 43, 44
+      ];
+      var oldIdx = oldSchemaMap[newIdx];
+      return (oldIdx !== undefined && oldIdx < row.length) ? row[oldIdx] : '';
+    }
+
+    // Build the clean 45-column row. For old-schema rows, get() uses the
+    // confirmed explicit position map. For already-correct rows, get()
+    // just reads the value straight through.
+    var newRow = [
+      get(0),  get(1),  get(2),  get(3),  get(4),  get(5),  get(6),  get(7),
+      get(8),  get(9),  get(10), get(11), get(12), get(13), get(14), get(15),
+      get(16), get(17), get(18), get(19), get(20), get(21), get(22), get(23),
+      get(24), get(25), get(26), get(27), get(28), get(29), get(30), get(31),
+      get(32), get(33), get(34),
+      // Financial Docs onward: old archive had duplicate header columns
+      // (a second copy starting at old index 45). For old-schema rows,
+      // prefer that later, more complete duplicate set.
+      isOldSchema && row.length > 45 ? row[45] : get(35), // Financial Docs
+      isOldSchema && row.length > 46 ? row[46] : get(36), // MoUs
+      isOldSchema && row.length > 47 ? row[47] : get(37), // Tracking Sheets
+      isOldSchema && row.length > 48 ? row[48] : get(38), // Photos
+      isOldSchema && row.length > 49 ? row[49] : get(39), // Videos
+      isOldSchema && row.length > 51 ? row[51] : get(40), // Safeguarding Items
+      isOldSchema && row.length > 52 ? row[52] : get(41), // Safeguarding Details
+      isOldSchema && row.length > 53 ? row[53] : get(42), // Concern Raised
+      isOldSchema && row.length > 54 ? row[54] : get(43), // Concern Detail
+      isOldSchema && row.length > 57 ? row[57] : get(44)  // Final Notes
+    ];
+
+    liveSheet.appendRow(newRow);
+    recovered++;
+  }
+
+  SpreadsheetApp.flush();
+  Logger.log('Recovery complete. Recovered: ' + recovered + ' rows. Skipped (empty): ' + skipped +
+             '. Source archive: ' + archiveName);
+  Logger.log('IMPORTANT: Please open the Field Reports sheet and spot-check a few rows to ' +
+             'confirm columns line up correctly (Zone shows a real zone, Hub shows a real hub name, etc).');
+}
+
 function repairMasterSheet() {
   var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
   if (!existing.hasNext()) { Logger.log('No master sheet found.'); return; }
