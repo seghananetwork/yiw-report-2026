@@ -259,14 +259,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </select>
       </div>
       <div class="field"><label>Date of visit *</label><input type="date" id="visitDate" class="inp"/></div>
-      <div class="field"><label>Visit type *</label>
-        <select id="visitType">
-          <option value="">Select…</option>
-          <option>Routine monitoring</option><option>Training supervision</option>
-          <option>Document collection</option><option>Partner engagement</option>
-          <option>Youth activation</option><option>Troubleshooting / support</option>
-          <option>Attendance data collection</option><option>MoU signing</option>
-        </select>
+      <div class="field"><label>Visit type * <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--t3)">(select all that apply)</span></label>
+        <div class="chk-grid" id="visitTypeGrid"></div>
       </div>
     </div>
 
@@ -587,6 +581,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 const SCRIPT_URL       = "https://script.google.com/macros/s/AKfycby5SZ8IBYj6Cu0y9leYJ8v32W8YZf-Le-s1L_mfejPB2H7gqiU2TLtGPMT4_0tQBcO35Q/exec";
 const GDRIVE_CLIENT_ID = "993520086653-9kof7bk29472tmvcj4l1q3v44tkkau1e.apps.googleusercontent.com";
 const GDRIVE_SCOPE     = "https://www.googleapis.com/auth/drive.file";
+const ROOT_FOLDER_ID   = "1NSEaitnDZFqqBkSSdMPxPDPettGKFyHQ"; // SE Ghana shared YiW folder
 let   gdriveToken      = null;
 
 // ── HUBS BY REGION (region → hub filtering) ──
@@ -626,6 +621,11 @@ function filterHubs(zone){
 }
 
 // ── DATA DEFINITIONS ──
+const VISIT_TYPE_ITEMS=[
+  'Routine monitoring','Training supervision','Document collection',
+  'Partner engagement','Youth activation','Troubleshooting / support',
+  'Attendance data collection','MoU signing','Desk search'
+];
 const ATT_ITEMS=[
   {id:'cMale',lbl:'Young men present'},
   {id:'cFemale',lbl:'Young women present'},
@@ -660,6 +660,7 @@ let ratingVal=0;
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded',async()=>{
+  buildCheckGrid('visitTypeGrid',VISIT_TYPE_ITEMS,'vt',false);
   buildCounters('attendanceWrap',ATT_ITEMS);
   buildCounters('activationWrap',ACT_ITEMS);
   buildCheckGrid('qualityGrid',QUALITY_ITEMS,'q',false);
@@ -848,7 +849,7 @@ function compileFormData(){
   const safeChecked=SAFE_ITEMS.filter(s=>document.getElementById(s.id)&&document.getElementById(s.id).checked).map(s=>s.lbl);
   return{
     fpName:gv('fpName'),fpPhone:gv('fpPhone'),fpEmail:gv('fpEmail'),fpZone:gv('fpZone'),
-    visitDate:gv('visitDate'),visitType:gv('visitType'),
+    visitDate:gv('visitDate'),visitTypes:getChecked('visitTypeGrid'),
     hubName:gv('hubName')==='Other — specify below'?gv('hubOther'):gv('hubName'),
     community:gv('community'),trainingCentre:gv('trainingCentre'),centreAddress:gv('centreAddress'),
     hubContact:gv('hubContact'),hubContactPhone:gv('hubContactPhone'),
@@ -989,6 +990,8 @@ async function uploadAndSubmit(reportId, formData){
   for(const k in MS) totalFiles += MS[k].length;
 
   const uploadedLinks = {}; // category → [{name, url, id}]
+  const driveFolderLinks = {}; // category → folder webViewLink (for sheet cells)
+  let submissionFolderLink = ''; // top-level submission folder link
 
   if(totalFiles > 0){
     // Get OAuth token (shows Google sign-in popup if needed)
@@ -1000,18 +1003,41 @@ async function uploadAndSubmit(reportId, formData){
       throw new Error('Google sign-in failed or was cancelled. Please try again.');
     }
 
-    // Create root folder "Youth in Work Field Reports Files"
-    setProgress(5, 'Setting up Drive folder…');
-    const rootId = await getDriveFolderId(token, 'root', 'Youth in Work Field Reports Files');
+    // Use the fixed SE Ghana shared root folder — no name lookup needed
+    setProgress(5, 'Setting up submission folder…');
+    const rootId = ROOT_FOLDER_ID;
 
-    // Create subfolder for this specific report
+    // Create one subfolder per submission inside the shared root
     const subName = `${formData.visitDate||'no-date'} — ${formData.fpName||'unknown'} (${formData.trainingCentre||formData.hubName||'unknown'})`;
     const subId   = await getDriveFolderId(token, rootId, subName);
 
-    // Share the subfolder so links work in email
+    // Share the submission folder so links work for the office
     await shareFolderPublic(token, subId);
 
-    // Upload each file
+    // Capture submission folder link
+    const subFolderMeta = await fetch(`https://www.googleapis.com/drive/v3/files/${subId}?fields=webViewLink`,{
+      headers:{ Authorization:'Bearer '+token }
+    });
+    const subFolderData = await subFolderMeta.json();
+    submissionFolderLink = subFolderData.webViewLink || '';
+
+    // Create a subfolder per category (only if that category has files)
+    const catFolderIds = {};
+    for(const [cat, label] of Object.entries(catLabels)){
+      if((MS[cat]||[]).length > 0){
+        const catFolderId = await getDriveFolderId(token, subId, label);
+        await shareFolderPublic(token, catFolderId);
+        catFolderIds[cat] = catFolderId;
+        // Get the folder's own link
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${catFolderId}?fields=webViewLink`,{
+          headers:{ Authorization:'Bearer '+token }
+        });
+        const data = await res.json();
+        driveFolderLinks[cat] = data.webViewLink || '';
+      }
+    }
+
+    // Upload each file into its category subfolder
     let done = 0;
     for(const [cat, label] of Object.entries(catLabels)){
       const files = MS[cat] || [];
@@ -1020,7 +1046,7 @@ async function uploadAndSubmit(reportId, formData){
         const pct = 5 + Math.round((done/totalFiles)*88);
         setProgress(pct, `Uploading ${file.name} (${done+1}/${totalFiles})…`);
         try{
-          const result = await uploadFileToDrive(token, file, subId,
+          const result = await uploadFileToDrive(token, file, catFolderIds[cat],
             (prog)=> setProgress(pct + Math.round(prog*(88/totalFiles)), `Uploading ${file.name}…`)
           );
           uploadedLinks[cat].push({ name:file.name, url:result.url, id:result.id, category:label });
@@ -1044,6 +1070,8 @@ async function uploadAndSubmit(reportId, formData){
       reportId,
       formData,
       driveLinks: uploadedLinks,
+      driveFolderLinks,
+      submissionFolderLink,
       totalFiles
     })
   });
@@ -1178,7 +1206,7 @@ async function retrySingle(id){
 function sanitiseFormData(d){
   const safe={};
   // Copy all string/number fields
-  const strings=['fpName','fpPhone','fpEmail','fpZone','visitDate','visitType',
+  const strings=['fpName','fpPhone','fpEmail','fpZone','visitDate',
     'hubName','community','trainingCentre','centreAddress','hubContact','hubContactPhone',
     'tArr','tDep','empName','empSector','enrolCourse','youthNames','highlight','yVoice',
     'challenges','recommendations','urgency','followUpBy','partnerNotes','nextPDate',
@@ -1192,7 +1220,7 @@ function sanitiseFormData(d){
   nums.forEach(k=>{ safe[k]=parseInt(d[k])||0; });
 
   // Array fields — guard against undefined, null, or non-array
-  const arrays=['quality','issues','facilities','activities','safeChecked'];
+  const arrays=['quality','issues','facilities','activities','safeChecked','visitTypes'];
   arrays.forEach(k=>{ safe[k]=Array.isArray(d[k])?d[k]:[]; });
 
   // Partners array — each item must be an object
@@ -1243,7 +1271,7 @@ function buildSummary(){
     ['Focal person',d.fpName||'—'],['Zone',d.fpZone||'—'],
     ['Visit date',d.visitDate||'—'],['Hub / TSP',d.hubName||'—'],
     ['Community',d.community||'—'],['Training centre',d.trainingCentre||'—'],
-    ['Visit type',d.visitType||'—'],['Youth present',totalAtt],
+    ['Visit type',d.visitTypes&&d.visitTypes.length?d.visitTypes.join(', '):'—'],['Youth present',totalAtt],
     ['Activations total',totalAct],['Partners engaged',document.querySelectorAll('#ptbody tr').length],
     ['Hub rating',d.rating?d.rating+'/5':'—'],['Issues flagged',d.issues.length||'None'],
     ['Files attached',totalFiles],['Safeguarding confirmed',d.safeChecked.length+' of 8']
