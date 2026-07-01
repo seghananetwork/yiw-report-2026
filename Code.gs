@@ -113,11 +113,13 @@ function getDashboardData() {
 
     var totals = { reports:0, youth:0, men:0, women:0, pwd:0,
                    jobs:0, interns:0, coops:0, furtherTraining:0, activations:0,
-                   partners:0, safetyConcerns:0 };
+                   partners:0, safetyConcerns:0,
+                   enrolM:0, enrolF:0, totalFiles:0 };
 
     var byHub={}, byZone={}, byDate={};
     var recentReports=[], urgentItems=[], lowRated=[], successStories=[];
-    var hubList = []; // ordered list of hub names
+    var hubList = [];
+    var visitTypeCounts = {};
 
     for (var r = 1; r < data.length; r++) {
       var row = data[r];
@@ -134,7 +136,13 @@ function getDashboardData() {
       totals.furtherTraining += parseInt(row[C.furtherTraining])   || 0;
       totals.activations     += parseInt(row[C.totalActivations])  || 0;
       totals.partners        += parseInt(row[C.partnersCount])     || 0;
+      totals.enrolM          += parseInt(row[C.enrolM])            || 0;
+      totals.enrolF          += parseInt(row[C.enrolF])            || 0;
+      totals.totalFiles      += parseInt(row[C.totalFiles])        || 0;
       if (String(row[C.safetyConcern]).toLowerCase() === 'yes') totals.safetyConcerns++;
+
+      var visitType = String(row[C.visitType]||'');
+      if (visitType) visitType.split(';').forEach(function(v){ var t=v.trim(); if(t){visitTypeCounts[t]=(visitTypeCounts[t]||0)+1;} });
 
       var hub       = String(row[C.hubName]  || 'Unknown');
       var zone      = String(row[C.fpZone]   || 'Unknown');
@@ -221,6 +229,7 @@ function getDashboardData() {
       totals:totals, hubStats:hubStats, zoneStats:zoneStats,
       byDate:byDate, recentReports:recentReports,
       urgentItems:urgentItems, lowRated:lowRated, successStories:successStories,
+      visitTypeCounts:visitTypeCounts,
       hubNames: hubList.filter(function(v,i,a){return a.indexOf(v)===i;}).sort()
     });
 
@@ -255,8 +264,9 @@ function getHubData(hubName) {
       partners:0, safetyConcerns:0
     };
     var byFP={}, byDate={}, ratingSum=0, ratingCount=0;
-    var qualityCounts={}, issueCounts={}, activityCounts={};
+    var qualityCounts={}, issueCounts={}, activityCounts={}, facilitiesCounts={}, visitTypeCounts={};
     var partnerEngagements=[];
+    var totalEnrolM=0, totalEnrolF=0, totalFiles=0;
 
     for (var r = 1; r < data.length; r++) {
       var row = data[r];
@@ -307,6 +317,16 @@ function getHubData(hubName) {
       if (issues)  issues.split(';').forEach(function(i){ var t=i.trim(); if(t){issueCounts[t]=(issueCounts[t]||0)+1;} });
       if (activities) activities.split(';').forEach(function(a){ var t=a.trim(); if(t){activityCounts[t]=(activityCounts[t]||0)+1;} });
 
+      var facilities = String(row[C.facilities]||'');
+      if (facilities) facilities.split(';').forEach(function(f){ var t=f.trim(); if(t){facilitiesCounts[t]=(facilitiesCounts[t]||0)+1;} });
+
+      var visitType = String(row[C.visitType]||'');
+      if (visitType) visitType.split(';').forEach(function(v){ var t=v.trim(); if(t){visitTypeCounts[t]=(visitTypeCounts[t]||0)+1;} });
+
+      totalEnrolM  += parseInt(row[C.enrolM])||0;
+      totalEnrolF  += parseInt(row[C.enrolF])||0;
+      totalFiles   += parseInt(row[C.totalFiles])||0;
+
       // Partner details
       if (partnerNames) {
         partnerNames.split(';').forEach(function(pn,idx){
@@ -320,17 +340,49 @@ function getHubData(hubName) {
 
       rows.push({
         rowIndex: r+1, date:visitDate, fp:fp,
+        fpPhone:   String(row[C.fpPhone]||''),
+        fpEmail:   String(row[C.fpEmail]||''),
+        fpZone:    String(row[C.fpZone]||''),
+        visitType: String(row[C.visitType]||''),
         community: String(row[C.community]||''),
         trainingCentre: String(row[C.trainingCentre]||''),
+        hubContact: String(row[C.hubContact]||''),
+        hubContactPhone: String(row[C.hubContactPhone]||''),
+        tArr:      String(row[C.tArr]||''),
+        tDep:      String(row[C.tDep]||''),
         youth:youth, men:parseInt(row[C.youngMen])||0, women:parseInt(row[C.youngWomen])||0,
         pwd:parseInt(row[C.pwd])||0, staff:parseInt(row[C.staff])||0,
+        trainer:parseInt(row[C.trainer])||0,
         jobs:parseInt(row[C.formalJobs])||0, interns:parseInt(row[C.internships])||0,
-        coops:parseInt(row[C.coops])||0, activations:acts,
+        coops:parseInt(row[C.coops])||0, furtherTraining:parseInt(row[C.furtherTraining])||0,
+        activations:acts,
+        enrolM:    parseInt(row[C.enrolM])||0,
+        enrolF:    parseInt(row[C.enrolF])||0,
+        enrolCourse: String(row[C.enrolCourse]||''),
+        empName:   String(row[C.empName]||''),
+        empSector: String(row[C.empSector]||''),
         partners:partners, rating:rating, urgency:urgency,
-        issues:issues, challenges:String(row[C.challenges]||''),
-        recommendations:String(row[C.recommendations]||''),
-        highlight:String(row[C.successStory]||''),
-        safetyConcern:concern
+        quality:   quality,
+        issues:    issues,
+        facilities: String(row[C.facilities]||''),
+        activities: activities,
+        challenges: String(row[C.challenges]||''),
+        recommendations: String(row[C.recommendations]||''),
+        highlight:  String(row[C.successStory]||''),
+        youthVoice: String(row[C.youthVoice]||''),
+        finalNotes: String(row[C.finalNotes]||''),
+        safetyConcern: concern,
+        safeTxt:    String(row[C.safeDetail]||''),
+        safeConfirmed: String(row[C.safeConfirmed]||''),
+        safeDetails:   String(row[C.safeDetails]||''),
+        totalFiles: parseInt(row[C.totalFiles])||0,
+        submissionFolder: String(row[C.submissionFolder]||''),
+        attFolder:  String(row[C.attFolder]||''),
+        finFolder:  String(row[C.finFolder]||''),
+        mouFolder:  String(row[C.mouFolder]||''),
+        trackFolder:String(row[C.trackFolder]||''),
+        photoFolder:String(row[C.photoFolder]||''),
+        videoFolder:String(row[C.videoFolder]||'')
       });
     }
 
@@ -351,8 +403,11 @@ function getHubData(hubName) {
       hub:hubName,
       generatedAt: new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'}),
       totals:totals, avgRating:avgRating,
+      totalEnrolM:totalEnrolM, totalEnrolF:totalEnrolF, totalFiles:totalFiles,
       rows:rows, fpStats:fpStats, byDate:byDate,
-      qualityCounts:qualityCounts, issueCounts:issueCounts, activityCounts:activityCounts,
+      qualityCounts:qualityCounts, issueCounts:issueCounts,
+      activityCounts:activityCounts, facilitiesCounts:facilitiesCounts,
+      visitTypeCounts:visitTypeCounts,
       partnerEngagements:partnerEngagements
     });
 
