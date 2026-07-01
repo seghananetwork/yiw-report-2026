@@ -509,64 +509,82 @@ function getDynamicColMap(headers) {
     formalJobs:-1, internships:-1, coops:-1, furtherTraining:-1, totalActivations:-1,
     enrolM:-1, enrolF:-1, enrolCourse:-1, empName:-1, empSector:-1,
     rating:-1, qualityIndicators:-1, issues:-1, facilities:-1, challenges:-1,
-    partnersCount:-1, totalFiles:-1, attDocs:-1, finDocs:-1, mous:-1,
-    trackSheets:-1, photos:-1, videos:-1,
-    safeConfirmed:-1, safeDetails:-1, safetyConcern:-1, safeDetail:-1, finalNotes:-1
+    partnersCount:-1, totalFiles:-1,
+    submissionFolder:-1,
+    attFolder:-1, finFolder:-1, mouFolder:-1, trackFolder:-1, photoFolder:-1, videoFolder:-1,
+    // legacy count columns (for old rows)
+    attDocs:-1, finDocs:-1, mous:-1, trackSheets:-1, photos:-1, videos:-1,
+    safeConfirmed:-1, safeDetails:-1, safetyConcern:-1, safeDetail:-1, finalNotes:-1,
+    // hub sheet extras
+    activities:-1, partnerNames:-1, skillsReq:-1, successStory:-1
   };
 
   // Header text → map key lookup
   var lookup = {
-    'submitted at':         'submittedAt',
-    'field personnel name': 'fpName',
-    'fp name':              'fpName',
-    'phone':                'fpPhone',
-    'zone':                 'fpZone',
-    'visit date':           'visitDate',
-    'visit type':           'visitType',
-    'hub / tsp':            'hubName',
-    'hub name':             'hubName',
-    'community':            'community',
-    'training centre':      'trainingCentre',
-    'time arrived':         'tArr',
-    'time departed':        'tDep',
-    'male':                 'youngMen',
-    'young men':            'youngMen',
-    'female':               'youngWomen',
-    'young women':          'youngWomen',
-    'pwd':                  'pwd',
-    'staff':                'staff',
-    'number of trainers':   'trainer',
-    'trainers':             'trainer',
-    'total youth':          'totalYouth',
-    'number of formal jobs':'formalJobs',
-    'formal jobs':          'formalJobs',
-    'internships':          'internships',
-    'cooperatives':         'coops',
-    'further training':     'furtherTraining',
-    'total activations':    'totalActivations',
-    'enrolments (m)':       'enrolM',
-    'enrolments (f)':       'enrolF',
-    'course':               'enrolCourse',
-    'employer':             'empName',
-    'sector':               'empSector',
-    'hub rating':           'rating',
-    'quality indicators':   'qualityIndicators',
-    'issues flagged':       'issues',
-    'facilities':           'facilities',
-    'challenges':           'challenges',
-    'partners count':       'partnersCount',
-    'total files':          'totalFiles',
-    'attendance docs':      'attDocs',
-    'financial docs':       'finDocs',
-    'mous':                 'mous',
-    'tracking sheets':      'trackSheets',
-    'photos':               'photos',
-    'videos':               'videos',
-    'safeguarding items':   'safeConfirmed',
-    'safeguarding details': 'safeDetails',
-    'concern raised':       'safetyConcern',
-    'concern detail':       'safeDetail',
-    'final notes':          'finalNotes'
+    'submitted at':                  'submittedAt',
+    'field personnel name':          'fpName',
+    'fp name':                       'fpName',
+    'phone':                         'fpPhone',
+    'zone':                          'fpZone',
+    'visit date':                    'visitDate',
+    'visit type':                    'visitType',
+    'hub / tsp':                     'hubName',
+    'hub name':                      'hubName',
+    'community':                     'community',
+    'training centre':               'trainingCentre',
+    'time arrived':                  'tArr',
+    'time departed':                 'tDep',
+    'male':                          'youngMen',
+    'young men':                     'youngMen',
+    'female':                        'youngWomen',
+    'young women':                   'youngWomen',
+    'pwd':                           'pwd',
+    'staff':                         'staff',
+    'number of trainers':            'trainer',
+    'trainers':                      'trainer',
+    'total youth':                   'totalYouth',
+    'number of formal jobs':         'formalJobs',
+    'formal jobs':                   'formalJobs',
+    'internships':                   'internships',
+    'cooperatives':                  'coops',
+    'further training':              'furtherTraining',
+    'total activations':             'totalActivations',
+    'enrolments (m)':                'enrolM',
+    'enrolments (f)':                'enrolF',
+    'course':                        'enrolCourse',
+    'employer':                      'empName',
+    'sector':                        'empSector',
+    'hub rating':                    'rating',
+    'quality indicators':            'qualityIndicators',
+    'issues flagged':                'issues',
+    'facilities':                    'facilities',
+    'challenges':                    'challenges',
+    'partners count':                'partnersCount',
+    'total files':                   'totalFiles',
+    'submission folder':             'submissionFolder',
+    'attendance sheets folder':      'attFolder',
+    'financial documents folder':    'finFolder',
+    'mous & agreements folder':      'mouFolder',
+    'tracking sheets folder':        'trackFolder',
+    'photos folder':                 'photoFolder',
+    'videos folder':                 'videoFolder',
+    // legacy count column names
+    'attendance docs':               'attDocs',
+    'financial docs':                'finDocs',
+    'mous':                          'mous',
+    'tracking sheets':               'trackSheets',
+    'photos':                        'photos',
+    'videos':                        'videos',
+    'safeguarding items':            'safeConfirmed',
+    'safeguarding confirmed':        'safeConfirmed',
+    'safeguarding details':          'safeDetails',
+    'concern raised':                'safetyConcern',
+    'concern detail':                'safeDetail',
+    'final notes':                   'finalNotes',
+    'activities':                    'activities',
+    'partner names':                 'partnerNames',
+    'skills requested':              'skillsReq',
+    'success story':                 'successStory'
   };
 
   for (var i = 0; i < headers.length; i++) {
@@ -704,7 +722,7 @@ function sanitise(raw) {
   // Plain string fields — default to ''
   var stringFields = [
     'fpName','fpPhone','fpEmail','fpZone',
-    'visitDate','visitType','hubName','community','trainingCentre','centreAddress',
+    'visitDate','hubName','community','trainingCentre','centreAddress',
     'hubContact','hubContactPhone','tArr','tDep',
     'enrolCourse','empName','empSector','youthNames','highlight','yVoice',
     'challenges','recommendations','urgency','followUpBy',
@@ -728,7 +746,7 @@ function sanitise(raw) {
   }
 
   // Array-of-strings fields — default to []
-  var arrayFields = ['quality','issues','facilities','activities','safeChecked'];
+  var arrayFields = ['quality','issues','facilities','activities','safeChecked','visitTypes'];
   for (var k = 0; k < arrayFields.length; k++) {
     var akey = arrayFields[k];
     out[akey] = Array.isArray(d[akey]) ? d[akey] : [];
@@ -781,24 +799,37 @@ function sanitiseDriveLinks(raw) {
   return out;
 }
 
+function sanitiseFolderLinks(raw) {
+  var src = raw || {};
+  var cats = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
+  var out = {};
+  for (var i = 0; i < cats.length; i++) {
+    var cat = cats[i];
+    out[cat] = src[cat] ? String(src[cat]) : '';
+  }
+  return out;
+}
+
 
 // ══════════════════════════════════════════════════════════════
 //  PRIMARY HANDLER
 // ══════════════════════════════════════════════════════════════
 
 function handleSubmitWithLinks(payload) {
-  var d          = sanitise(payload.formData);
-  var driveLinks = sanitiseDriveLinks(payload.driveLinks);
-  var totalFiles = parseInt(payload.totalFiles, 10) || 0;
+  var d                    = sanitise(payload.formData);
+  var driveLinks           = sanitiseDriveLinks(payload.driveLinks);
+  var driveFolderLinks     = sanitiseFolderLinks(payload.driveFolderLinks);
+  var submissionFolderLink = String(payload.submissionFolderLink || '');
+  var totalFiles           = parseInt(payload.totalFiles, 10) || 0;
 
   // 1. Append to master sheet (creates workbook if needed), get share URL
-  var sheetUrl = appendToMasterSheet(d, driveLinks, totalFiles);
+  var sheetUrl = appendToMasterSheet(d, driveLinks, driveFolderLinks, submissionFolderLink, totalFiles);
 
   // 2. Append to the hub-specific tab in the same workbook
-  appendToHubSheet(d, driveLinks);
+  appendToHubSheet(d, driveLinks, driveFolderLinks, submissionFolderLink);
 
   // 3. Build email
-  var fileLinksHtml = buildFileLinksHtml(driveLinks);
+  var fileLinksHtml = buildFileLinksHtml(driveLinks, driveFolderLinks, submissionFolderLink);
   var htmlBody = buildEmailHtml(d, fileLinksHtml, sheetUrl);
   var subject  = 'YiW Field Report: ' + (d.fpName || '--') +
                   ' -- ' + (d.trainingCentre || d.hubName || '--') +
@@ -823,9 +854,10 @@ function handleSubmitWithLinks(payload) {
 function handleLegacy(payload) {
   var d = sanitise(payload.formData);
   var emptyLinks = sanitiseDriveLinks({});
+  var emptyFolderLinks = sanitiseFolderLinks({});
 
-  var sheetUrl = appendToMasterSheet(d, emptyLinks, 0);
-  appendToHubSheet(d, emptyLinks);
+  var sheetUrl = appendToMasterSheet(d, emptyLinks, emptyFolderLinks, '', 0);
+  appendToHubSheet(d, emptyLinks, emptyFolderLinks, '');
 
   var fileLinksHtml = '<p style="color:#718096;font-style:italic;font-size:13px">No files attached for this submission.</p>';
   var htmlBody = buildEmailHtml(d, fileLinksHtml, sheetUrl);
@@ -840,7 +872,7 @@ function handleLegacy(payload) {
 //  MASTER SHEET — one row per submission (Google Forms style)
 // ══════════════════════════════════════════════════════════════
 
-function appendToMasterSheet(d, driveLinks, totalFiles) {
+function appendToMasterSheet(d, driveLinks, driveFolderLinks, submissionFolderLink, totalFiles) {
   try {
     var ss, sheetUrl;
     var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
@@ -867,15 +899,6 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
 
     var fc = countDriveLinks(driveLinks);
 
-    var allFileUrls = [];
-    var cats = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
-    for (var c = 0; c < cats.length; c++) {
-      var arr = driveLinks[cats[c]];
-      for (var i = 0; i < arr.length; i++) {
-        allFileUrls.push(arr[i].name + ': ' + arr[i].url);
-      }
-    }
-
     var partnerNames = [];
     var partnerSkills = [];
     for (var p = 0; p < d.partners.length; p++) {
@@ -890,7 +913,7 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
       d.fpPhone,                                     // 2  Phone
       d.fpZone,                                      // 3  Zone
       d.visitDate,                                   // 4  Visit Date
-      d.visitType,                                   // 5  Visit Type
+      d.visitTypes.join('; '),                       // 5  Visit Type
       d.hubName,                                     // 6  Hub / TSP
       d.community,                                   // 7  Community
       d.trainingCentre,                              // 8  Training Centre
@@ -922,20 +945,22 @@ function appendToMasterSheet(d, driveLinks, totalFiles) {
       d.challenges,                                  // 31 Challenges
       // Partners
       d.partners.length,                             // 32 Partners Count
-      // Files
+      // Files — counts
       fc.total,                                      // 33 Total Files
-      fc.dAtt,                                       // 34 Attendance Docs
-      fc.dFin,                                       // 35 Financial Docs
-      fc.dMou,                                       // 36 MoUs
-      fc.dTrack,                                     // 37 Tracking Sheets
-      fc.mPhoto,                                     // 38 Photos
-      fc.mVideo,                                     // 39 Videos
+      // Files — folder links (one per category)
+      submissionFolderLink,                          // 34 Submission Folder
+      driveFolderLinks.dAtt   || '',                 // 35 Attendance Sheets Folder
+      driveFolderLinks.dFin   || '',                 // 36 Financial Documents Folder
+      driveFolderLinks.dMou   || '',                 // 37 MoUs & Agreements Folder
+      driveFolderLinks.dTrack || '',                 // 38 Tracking Sheets Folder
+      driveFolderLinks.mPhoto || '',                 // 39 Photos Folder
+      driveFolderLinks.mVideo || '',                 // 40 Videos Folder
       // Safeguarding
-      d.safeChecked.length,                          // 40 Safeguarding Items
-      d.safeChecked.join('; '),                      // 41 Safeguarding Details
-      (d.safeConcern === 'yes' ? 'YES' : 'No'),      // 42 Concern Raised
-      d.safeTxt,                                     // 43 Concern Detail
-      d.finalNotes                                   // 44 Final Notes
+      d.safeChecked.length,                          // 41 Safeguarding Items
+      d.safeChecked.join('; '),                      // 42 Safeguarding Details
+      (d.safeConcern === 'yes' ? 'YES' : 'No'),      // 43 Concern Raised
+      d.safeTxt,                                     // 44 Concern Detail
+      d.finalNotes                                   // 45 Final Notes
     ];
 
     sheet.appendRow(dataRow);
@@ -991,12 +1016,13 @@ function formatMasterSheet(sheet) {
     'Challenges',
     'Partners Count',
     'Total Files',
-    'Attendance Docs',
-    'Financial Docs',
-    'MoUs',
-    'Tracking Sheets',
-    'Photos',
-    'Videos',
+    'Submission Folder',
+    'Attendance Sheets Folder',
+    'Financial Documents Folder',
+    'MoUs & Agreements Folder',
+    'Tracking Sheets Folder',
+    'Photos Folder',
+    'Videos Folder',
     'Safeguarding Items',
     'Safeguarding Details',
     'Concern Raised',
@@ -1022,13 +1048,20 @@ function formatMasterSheet(sheet) {
   sheet.setColumnWidth(3,  120); // Phone
   sheet.setColumnWidth(4,  120); // Zone
   sheet.setColumnWidth(5,  100); // Visit Date
-  sheet.setColumnWidth(6,  140); // Visit Type
+  sheet.setColumnWidth(6,  200); // Visit Type (wider — may hold multiple)
   sheet.setColumnWidth(7,  240); // Hub / TSP
   sheet.setColumnWidth(8,  130); // Community
   sheet.setColumnWidth(9,  180); // Training Centre
   sheet.setColumnWidth(29, 220); // Quality Indicators
   sheet.setColumnWidth(30, 200); // Issues Flagged
   sheet.setColumnWidth(32, 260); // Challenges
+  sheet.setColumnWidth(35, 280); // Submission Folder
+  sheet.setColumnWidth(36, 260); // Attendance Sheets Folder
+  sheet.setColumnWidth(37, 260); // Financial Documents Folder
+  sheet.setColumnWidth(38, 260); // MoUs & Agreements Folder
+  sheet.setColumnWidth(39, 260); // Tracking Sheets Folder
+  sheet.setColumnWidth(40, 240); // Photos Folder
+  sheet.setColumnWidth(41, 240); // Videos Folder
 }
 
 // Run this once manually to fix headers on an existing sheet without deleting data
@@ -1225,7 +1258,7 @@ function resetMasterSheetHeaders() {
 //  HUB-SPECIFIC SHEET — one tab per TSP/Hub
 // ══════════════════════════════════════════════════════════════
 
-function appendToHubSheet(d, driveLinks) {
+function appendToHubSheet(d, driveLinks, driveFolderLinks, submissionFolderLink) {
   try {
     var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
     if (!existing.hasNext()) return; // master sheet not created yet, skip
@@ -1246,15 +1279,6 @@ function appendToHubSheet(d, driveLinks) {
 
     var fc = countDriveLinks(driveLinks);
 
-    var allFileUrls = [];
-    var cats = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
-    for (var c = 0; c < cats.length; c++) {
-      var arr = driveLinks[cats[c]];
-      for (var i = 0; i < arr.length; i++) {
-        allFileUrls.push(arr[i].name + ': ' + arr[i].url);
-      }
-    }
-
     var partnerNames = [];
     var partnerSkills = [];
     for (var p = 0; p < d.partners.length; p++) {
@@ -1266,7 +1290,7 @@ function appendToHubSheet(d, driveLinks) {
     var row = [
       new Date(),
       d.fpName, d.fpPhone, d.fpEmail, d.fpZone,
-      d.visitDate, d.visitType, d.community, d.trainingCentre,
+      d.visitDate, d.visitTypes.join('; '), d.community, d.trainingCentre,
       d.hubContact, d.hubContactPhone, d.tArr, d.tDep,
       // Attendance
       d.cMale, d.cFemale, d.cPWD, d.cStaff, d.cTrainer,
@@ -1286,9 +1310,15 @@ function appendToHubSheet(d, driveLinks) {
       d.partners.length,
       partnerNames.join('; '),
       partnerSkills.join('; '),
-      // Files
+      // Files — total count + per-category folder links
       fc.total,
-      allFileUrls.join(' | '),
+      submissionFolderLink          || '',
+      driveFolderLinks.dAtt         || '',
+      driveFolderLinks.dFin         || '',
+      driveFolderLinks.dMou         || '',
+      driveFolderLinks.dTrack       || '',
+      driveFolderLinks.mPhoto       || '',
+      driveFolderLinks.mVideo       || '',
       // Safeguarding
       d.safeChecked.length,
       (d.safeConcern === 'yes' ? 'YES' : 'No'),
@@ -1323,7 +1353,14 @@ function formatHubSheet(sheet, hubName) {
     'Hub Rating','Quality Indicators','Issues Flagged','Facilities','Activities',
     'Challenges','Recommendations','Urgency','Follow-up By',
     'Partners Count','Partner Names','Skills Requested',
-    'Total Files','File Links',
+    'Total Files',
+    'Submission Folder',
+    'Attendance Sheets Folder',
+    'Financial Documents Folder',
+    'MoUs & Agreements Folder',
+    'Tracking Sheets Folder',
+    'Photos Folder',
+    'Videos Folder',
     'Safeguarding Confirmed','Concern Raised','Concern Detail',
     'Success Story','Youth Voice','Final Notes'
   ];
@@ -1349,13 +1386,20 @@ function formatHubSheet(sheet, hubName) {
   sheet.setColumnWidth(1,  160);
   sheet.setColumnWidth(2,  140);
   sheet.setColumnWidth(6,  100);
+  sheet.setColumnWidth(7,  200); // Visit Type — wider for multi-select
   sheet.setColumnWidth(8,  120);
   sheet.setColumnWidth(9,  170);
   sheet.setColumnWidth(31, 220);
   sheet.setColumnWidth(32, 200);
   sheet.setColumnWidth(35, 260);
   sheet.setColumnWidth(36, 260);
-  sheet.setColumnWidth(42, 300);
+  sheet.setColumnWidth(43, 280); // Submission Folder
+  sheet.setColumnWidth(44, 260); // Attendance Sheets Folder
+  sheet.setColumnWidth(45, 260); // Financial Documents Folder
+  sheet.setColumnWidth(46, 260); // MoUs & Agreements Folder
+  sheet.setColumnWidth(47, 260); // Tracking Sheets Folder
+  sheet.setColumnWidth(48, 240); // Photos Folder
+  sheet.setColumnWidth(49, 240); // Videos Folder
 }
 
 
@@ -1374,38 +1418,64 @@ function countDriveLinks(driveLinks) {
   return out;
 }
 
-function buildFileLinksHtml(driveLinks) {
+function buildFileLinksHtml(driveLinks, driveFolderLinks, submissionFolderLink) {
   var catOrder = ['dAtt','dFin','dMou','dTrack','mPhoto','mVideo'];
   var catNames = {
-    dAtt: 'Attendance Sheet', dFin: 'Financial Document',
-    dMou: 'MoU / Agreement',  dTrack: 'Tracking Sheet',
-    mPhoto: 'Photo',          mVideo: 'Video'
+    dAtt: 'Attendance Sheets', dFin: 'Financial Documents',
+    dMou: 'MoUs & Agreements',  dTrack: 'Tracking Sheets',
+    mPhoto: 'Photos',           mVideo: 'Videos'
   };
-  var rows = '';
-  var count = 0;
 
-  for (var i = 0; i < catOrder.length; i++) {
-    var cat = catOrder[i];
-    var files = driveLinks[cat];
-    for (var j = 0; j < files.length; j++) {
-      var f = files[j];
-      var label = f.category || catNames[cat] || cat;
-      rows += '<tr>' +
-        '<td style="padding:8px;border:1px solid #cbd5e1;font-weight:600;color:#1a5c2a;font-size:12px">' + label + '</td>' +
-        '<td style="padding:8px;border:1px solid #cbd5e1;font-size:12px"><a href="' + f.url + '" style="color:#1565c0;font-weight:500">Link: ' + f.name + '</a></td>' +
-        '</tr>';
-      count++;
-    }
-  }
+  driveFolderLinks = driveFolderLinks || {};
 
-  if (count === 0) {
+  // Check if anything was uploaded
+  var totalCount = 0;
+  for (var i = 0; i < catOrder.length; i++) totalCount += (driveLinks[catOrder[i]] || []).length;
+
+  if (totalCount === 0) {
     return '<p style="color:#718096;font-style:italic;font-size:13px">No files attached for this submission.</p>';
   }
 
-  return '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">' +
-    '<tr style="background:#e8f5eb"><th style="padding:8px;border:1px solid #cbd5e1;text-align:left">Category</th>' +
-    '<th style="padding:8px;border:1px solid #cbd5e1;text-align:left">File - click to open in Drive</th></tr>' +
-    rows + '</table>';
+  var html = '';
+
+  // Submission folder banner
+  if (submissionFolderLink) {
+    html += '<div style="background:#e8f5eb;border:1px solid #4caf50;border-radius:8px;padding:10px 13px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
+      '<div style="font-size:12px;font-weight:700;color:#1a5c2a">📁 All files for this report</div>' +
+      '<a href="' + submissionFolderLink + '" style="background:#1a5c2a;color:#fff;font-weight:700;font-size:12px;padding:6px 13px;border-radius:6px;text-decoration:none">Open Submission Folder</a>' +
+      '</div>';
+  }
+
+  // Per-category section: folder link + individual file links
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:4px">';
+  html += '<tr style="background:#e8f5eb"><th style="padding:8px;border:1px solid #cbd5e1;text-align:left">Category</th>' +
+    '<th style="padding:8px;border:1px solid #cbd5e1;text-align:left">Folder</th>' +
+    '<th style="padding:8px;border:1px solid #cbd5e1;text-align:left">Files</th></tr>';
+
+  for (var i = 0; i < catOrder.length; i++) {
+    var cat = catOrder[i];
+    var files = driveLinks[cat] || [];
+    if (files.length === 0) continue;
+
+    var folderLink = driveFolderLinks[cat] || '';
+    var folderCell = folderLink
+      ? '<a href="' + folderLink + '" style="color:#1565c0;font-weight:600;font-size:12px">📂 Open folder</a>'
+      : '<span style="color:#718096;font-size:12px">—</span>';
+
+    var fileLinks = '';
+    for (var j = 0; j < files.length; j++) {
+      fileLinks += '<div style="margin-bottom:3px"><a href="' + files[j].url + '" style="color:#1565c0;font-size:12px">' + files[j].name + '</a></div>';
+    }
+
+    html += '<tr>' +
+      '<td style="padding:8px;border:1px solid #cbd5e1;font-weight:600;color:#1a5c2a;font-size:12px;vertical-align:top">' + catNames[cat] + ' (' + files.length + ')</td>' +
+      '<td style="padding:8px;border:1px solid #cbd5e1;vertical-align:top">' + folderCell + '</td>' +
+      '<td style="padding:8px;border:1px solid #cbd5e1;vertical-align:top">' + fileLinks + '</td>' +
+      '</tr>';
+  }
+
+  html += '</table>';
+  return html;
 }
 
 function jsonOut(obj) {
@@ -1541,7 +1611,7 @@ function buildEmailHtml(d, fileLinksHtml, sheetUrl) {
   html += '<div style="border-radius:9px;border:1px solid #dde3ea;border-left:4px solid #1a5c2a;padding:15px;margin-bottom:13px">';
   html += '<div style="font-size:11px;font-weight:700;color:#1a5c2a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">Visit Details</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-  html += '<tr><td style="padding:4px 0;color:#718096;width:38%">Visit type</td><td style="padding:4px 0;font-weight:600">' + safe(d.visitType) + '</td></tr>';
+  html += '<tr><td style="padding:4px 0;color:#718096;width:38%">Visit type</td><td style="padding:4px 0;font-weight:600">' + (Array.isArray(d.visitTypes) && d.visitTypes.length ? d.visitTypes.join('; ') : '—') + '</td></tr>';
   html += '<tr><td style="padding:4px 0;color:#718096">Hub / TSP</td><td style="padding:4px 0;font-weight:600">' + safe(d.hubName) + '</td></tr>';
   html += '<tr><td style="padding:4px 0;color:#718096">Community</td><td style="padding:4px 0;font-weight:600">' + safe(d.community) + '</td></tr>';
   html += '<tr><td style="padding:4px 0;color:#718096">Training centre</td><td style="padding:4px 0;font-weight:600">' + safe(d.trainingCentre) + '</td></tr>';
