@@ -47,6 +47,7 @@ function doGet(e) {
 
   if (action === 'dashboard')     return getDashboardData();
   if (action === 'hub')           return getHubData(params.hub || '');
+  if (action === 'partners')      return getAllPartnersData(params.hub || '');
   if (action === 'deleteRow')     return deleteTestRow(params.rowIndex || '');
   if (action === 'listRows')      return listAllRows();
   if (action === 'diagnose')      return diagnoseHeaders();
@@ -287,6 +288,7 @@ function getHubData(hubName) {
       var concern    = String(row[C.safetyConcern] || '');
       var partnerNames = String(row[C.partnerNames] || '');
       var skillsReq  = String(row[C.skillsReq] || '');
+      var partnersJson = String(row[C.partnersJson] || '');
 
       totals.youth           += parseInt(row[C.youngMen])||0 + parseInt(row[C.youngWomen])||0 + parseInt(row[C.pwd])||0;
       totals.men             += parseInt(row[C.youngMen])         || 0;
@@ -327,13 +329,62 @@ function getHubData(hubName) {
       totalEnrolF  += parseInt(row[C.enrolF])||0;
       totalFiles   += parseInt(row[C.totalFiles])||0;
 
-      // Partner details
-      if (partnerNames) {
-        partnerNames.split(';').forEach(function(pn,idx){
-          var name = pn.trim();
+      // Partner details — parse JSON column if available, fall back to collapsed strings
+      if (partnersJson) {
+        try {
+          var pArr = JSON.parse(partnersJson);
+          if (Array.isArray(pArr)) {
+            pArr.forEach(function(p) {
+              if (p && p.name) {
+                partnerEngagements.push({
+                  tsp:       hubName,
+                  date:      visitDate,
+                  fp:        fp,
+                  zone:      String(row[C.fpZone]||''),
+                  name:      p.name        || '',
+                  location:  p.location    || '',
+                  sector:    p.sector      || '',
+                  profile:   p.profile     || '',
+                  skills:    p.skillsNeeded|| '',
+                  contact:   p.contact     || '',
+                  phone:     p.phone       || '',
+                  email:     p.email       || '',
+                  status:    p.status      || '',
+                  slots:     p.slots       || 0,
+                  remarks:   p.remarks     || ''
+                });
+              }
+            });
+          }
+        } catch(e) {
+          // Fallback: reconstruct from collapsed strings (old rows)
+          if (partnerNames) {
+            partnerNames.split(';').forEach(function(pn, idx) {
+              var name = pn.replace(/\(.*?\)/,'').trim();
+              if (name) {
+                partnerEngagements.push({
+                  tsp:name, date:visitDate, fp:fp,
+                  zone:String(row[C.fpZone]||''),
+                  name:name, location:'', sector:'', profile:'',
+                  skills:(skillsReq.split(';')[idx]||'').trim(),
+                  contact:'', phone:'', email:'', status:'', slots:0, remarks:''
+                });
+              }
+            });
+          }
+        }
+      } else if (partnerNames) {
+        // Old rows with no JSON column
+        partnerNames.split(';').forEach(function(pn, idx) {
+          var name = pn.replace(/\(.*?\)/,'').trim();
           if (name) {
-            var skills = skillsReq.split(';')[idx] || '';
-            partnerEngagements.push({ name:name, date:visitDate, fp:fp, skills:skills.trim() });
+            partnerEngagements.push({
+              tsp:hubName, date:visitDate, fp:fp,
+              zone:String(row[C.fpZone]||''),
+              name:name, location:'', sector:'', profile:'',
+              skills:(skillsReq.split(';')[idx]||'').trim(),
+              contact:'', phone:'', email:'', status:'', slots:0, remarks:''
+            });
           }
         });
       }
@@ -413,6 +464,110 @@ function getHubData(hubName) {
 
   } catch(err) {
     Logger.log('Hub data error: ' + err.toString());
+    return jsonOut({ status:'error', message:err.toString() });
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  PARTNERS — flat list of all partners for export
+//  ?action=partners           → all hubs
+//  ?action=partners&hub=X     → single hub only
+// ══════════════════════════════════════════════════════════════
+
+function getAllPartnersData(filterHub) {
+  try {
+    var existing = DriveApp.getFilesByName(MASTER_SHEET_NAME);
+    if (!existing.hasNext()) return jsonOut({ status:'error', message:'No data yet.' });
+
+    var ss    = SpreadsheetApp.open(existing.next());
+    var sheet = ss.getSheetByName('Field Reports');
+    if (!sheet || sheet.getLastRow() < 2) return jsonOut({ status:'success', partners:[] });
+
+    var data = sheet.getDataRange().getValues();
+    var C    = getDynamicColMap(data[0]);
+    var partners = [];
+
+    for (var r = 1; r < data.length; r++) {
+      var row    = data[r];
+      var hubName = String(row[C.hubName] || '');
+      if (!hubName) continue;
+      if (filterHub && hubName !== filterHub) continue;
+
+      var visitDate    = row[C.visitDate]  ? String(row[C.visitDate]).substring(0,10) : '';
+      var fp           = String(row[C.fpName]  || '');
+      var zone         = String(row[C.fpZone]  || '');
+      var partnersJson = String(row[C.partnersJson] || '');
+      var partnerNames = String(row[C.partnerNames] || '');
+      var skillsReq    = String(row[C.skillsReq]    || '');
+
+      if (partnersJson) {
+        try {
+          var pArr = JSON.parse(partnersJson);
+          if (Array.isArray(pArr)) {
+            pArr.forEach(function(p) {
+              if (p && p.name) {
+                partners.push({
+                  tsp:      hubName,
+                  zone:     zone,
+                  fp:       fp,
+                  date:     visitDate,
+                  name:     p.name         || '',
+                  location: p.location     || '',
+                  sector:   p.sector       || '',
+                  profile:  p.profile      || '',
+                  skills:   p.skillsNeeded || '',
+                  contact:  p.contact      || '',
+                  phone:    p.phone        || '',
+                  email:    p.email        || '',
+                  status:   p.status       || '',
+                  slots:    p.slots        || 0,
+                  remarks:  p.remarks      || ''
+                });
+              }
+            });
+          }
+        } catch(e) {
+          // Fallback for old rows
+          if (partnerNames) {
+            partnerNames.split(';').forEach(function(pn, idx) {
+              var name = pn.replace(/\(.*?\)/,'').trim();
+              if (name) {
+                partners.push({
+                  tsp:hubName, zone:zone, fp:fp, date:visitDate,
+                  name:name, location:'', sector:'', profile:'',
+                  skills:(skillsReq.split(';')[idx]||'').trim(),
+                  contact:'', phone:'', email:'', status:'', slots:0, remarks:''
+                });
+              }
+            });
+          }
+        }
+      } else if (partnerNames) {
+        partnerNames.split(';').forEach(function(pn, idx) {
+          var name = pn.replace(/\(.*?\)/,'').trim();
+          if (name) {
+            partners.push({
+              tsp:hubName, zone:zone, fp:fp, date:visitDate,
+              name:name, location:'', sector:'', profile:'',
+              skills:(skillsReq.split(';')[idx]||'').trim(),
+              contact:'', phone:'', email:'', status:'', slots:0, remarks:''
+            });
+          }
+        });
+      }
+    }
+
+    return jsonOut({
+      status:   'success',
+      hub:      filterHub || 'ALL',
+      count:    partners.length,
+      generatedAt: new Date().toLocaleString('en-GB', {timeZone:'Africa/Accra'}),
+      partners: partners
+    });
+
+  } catch(err) {
+    Logger.log('Partners data error: ' + err.toString());
     return jsonOut({ status:'error', message:err.toString() });
   }
 }
@@ -564,7 +719,7 @@ function getDynamicColMap(headers) {
     formalJobs:-1, internships:-1, coops:-1, furtherTraining:-1, totalActivations:-1,
     enrolM:-1, enrolF:-1, enrolCourse:-1, empName:-1, empSector:-1,
     rating:-1, qualityIndicators:-1, issues:-1, facilities:-1, challenges:-1,
-    partnersCount:-1, totalFiles:-1,
+    partnersCount:-1, partnersJson:-1, totalFiles:-1,
     submissionFolder:-1,
     attFolder:-1, finFolder:-1, mouFolder:-1, trackFolder:-1, photoFolder:-1, videoFolder:-1,
     // legacy count columns (for old rows)
@@ -615,6 +770,7 @@ function getDynamicColMap(headers) {
     'facilities':                    'facilities',
     'challenges':                    'challenges',
     'partners count':                'partnersCount',
+    'partners json':                 'partnersJson',
     'total files':                   'totalFiles',
     'submission folder':             'submissionFolder',
     'attendance sheets folder':      'attFolder',
@@ -821,8 +977,10 @@ function sanitise(raw) {
         skillsNeeded: src.skillsNeeded ? String(src.skillsNeeded) : '',
         contact:      src.contact      ? String(src.contact)      : '',
         phone:        src.phone        ? String(src.phone)        : '',
+        email:        src.email        ? String(src.email)        : '',
         status:       src.status       ? String(src.status)       : '',
-        slots:        (function(){ var s = parseInt(src.slots, 10); return isNaN(s) ? 0 : s; })()
+        slots:        (function(){ var s = parseInt(src.slots, 10); return isNaN(s) ? 0 : s; })(),
+        remarks:      src.remarks      ? String(src.remarks)      : ''
       });
     }
   } else {
@@ -954,14 +1112,6 @@ function appendToMasterSheet(d, driveLinks, driveFolderLinks, submissionFolderLi
 
     var fc = countDriveLinks(driveLinks);
 
-    var partnerNames = [];
-    var partnerSkills = [];
-    for (var p = 0; p < d.partners.length; p++) {
-      var pr = d.partners[p];
-      partnerNames.push(pr.name + (pr.status ? ' (' + pr.status + ')' : ''));
-      partnerSkills.push(pr.skillsNeeded);
-    }
-
     var dataRow = [
       new Date(),                                    // 0  Submitted At
       d.fpName,                                      // 1  Field Personnel Name
@@ -1000,22 +1150,23 @@ function appendToMasterSheet(d, driveLinks, driveFolderLinks, submissionFolderLi
       d.challenges,                                  // 31 Challenges
       // Partners
       d.partners.length,                             // 32 Partners Count
-      // Files — counts
-      fc.total,                                      // 33 Total Files
+      JSON.stringify(d.partners),                    // 33 Partners JSON
+      // Files
+      fc.total,                                      // 34 Total Files
       // Files — folder links (one per category)
-      submissionFolderLink,                          // 34 Submission Folder
-      driveFolderLinks.dAtt   || '',                 // 35 Attendance Sheets Folder
-      driveFolderLinks.dFin   || '',                 // 36 Financial Documents Folder
-      driveFolderLinks.dMou   || '',                 // 37 MoUs & Agreements Folder
-      driveFolderLinks.dTrack || '',                 // 38 Tracking Sheets Folder
-      driveFolderLinks.mPhoto || '',                 // 39 Photos Folder
-      driveFolderLinks.mVideo || '',                 // 40 Videos Folder
+      submissionFolderLink,                          // 35 Submission Folder
+      driveFolderLinks.dAtt   || '',                 // 36 Attendance Sheets Folder
+      driveFolderLinks.dFin   || '',                 // 37 Financial Documents Folder
+      driveFolderLinks.dMou   || '',                 // 38 MoUs & Agreements Folder
+      driveFolderLinks.dTrack || '',                 // 39 Tracking Sheets Folder
+      driveFolderLinks.mPhoto || '',                 // 40 Photos Folder
+      driveFolderLinks.mVideo || '',                 // 41 Videos Folder
       // Safeguarding
-      d.safeChecked.length,                          // 41 Safeguarding Items
-      d.safeChecked.join('; '),                      // 42 Safeguarding Details
-      (d.safeConcern === 'yes' ? 'YES' : 'No'),      // 43 Concern Raised
-      d.safeTxt,                                     // 44 Concern Detail
-      d.finalNotes                                   // 45 Final Notes
+      d.safeChecked.length,                          // 42 Safeguarding Items
+      d.safeChecked.join('; '),                      // 43 Safeguarding Details
+      (d.safeConcern === 'yes' ? 'YES' : 'No'),      // 44 Concern Raised
+      d.safeTxt,                                     // 45 Concern Detail
+      d.finalNotes                                   // 46 Final Notes
     ];
 
     sheet.appendRow(dataRow);
@@ -1070,6 +1221,7 @@ function formatMasterSheet(sheet) {
     'Facilities',
     'Challenges',
     'Partners Count',
+    'Partners JSON',
     'Total Files',
     'Submission Folder',
     'Attendance Sheets Folder',
@@ -1110,7 +1262,8 @@ function formatMasterSheet(sheet) {
   sheet.setColumnWidth(29, 220); // Quality Indicators
   sheet.setColumnWidth(30, 200); // Issues Flagged
   sheet.setColumnWidth(32, 260); // Challenges
-  sheet.setColumnWidth(35, 280); // Submission Folder
+  sheet.setColumnWidth(34, 60);  // Partners JSON (narrow — raw data, not for reading)
+  sheet.setColumnWidth(36, 280); // Submission Folder
   sheet.setColumnWidth(36, 260); // Attendance Sheets Folder
   sheet.setColumnWidth(37, 260); // Financial Documents Folder
   sheet.setColumnWidth(38, 260); // MoUs & Agreements Folder
@@ -1334,14 +1487,6 @@ function appendToHubSheet(d, driveLinks, driveFolderLinks, submissionFolderLink)
 
     var fc = countDriveLinks(driveLinks);
 
-    var partnerNames = [];
-    var partnerSkills = [];
-    for (var p = 0; p < d.partners.length; p++) {
-      var pr = d.partners[p];
-      partnerNames.push(pr.name + (pr.status ? ' (' + pr.status + ')' : ''));
-      partnerSkills.push(pr.skillsNeeded);
-    }
-
     var row = [
       new Date(),
       d.fpName, d.fpPhone, d.fpEmail, d.fpZone,
@@ -1363,8 +1508,7 @@ function appendToHubSheet(d, driveLinks, driveFolderLinks, submissionFolderLink)
       d.challenges, d.recommendations, d.urgency, d.followUpBy,
       // Partners
       d.partners.length,
-      partnerNames.join('; '),
-      partnerSkills.join('; '),
+      JSON.stringify(d.partners),
       // Files — total count + per-category folder links
       fc.total,
       submissionFolderLink          || '',
@@ -1407,7 +1551,7 @@ function formatHubSheet(sheet, hubName) {
     'Enrolments (M)','Enrolments (F)','Course / Trade','Employer','Sector',
     'Hub Rating','Quality Indicators','Issues Flagged','Facilities','Activities',
     'Challenges','Recommendations','Urgency','Follow-up By',
-    'Partners Count','Partner Names','Skills Requested',
+    'Partners Count','Partners JSON',
     'Total Files',
     'Submission Folder',
     'Attendance Sheets Folder',
