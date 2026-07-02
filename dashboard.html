@@ -160,6 +160,13 @@ body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-heigh
 
     <div id="storiesSection"></div>
 
+    <div class="sec" style="margin-bottom:10px">
+      <div class="sec-ttl">
+        Partner registry
+        <button onclick="exportPartners('all')" style="background:var(--blue);color:#fff;border:none;padding:5px 13px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">⬇ Export ALL partners → Excel</button>
+      </div>
+    </div>
+
     <div class="sec">
       <div class="sec-ttl">Hub performance summary <a onclick="switchView('hub')">View hub detail →</a></div>
       <div class="card">
@@ -253,11 +260,18 @@ body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-heigh
     </div>
 
     <div class="sec">
-      <div class="sec-ttl">Partner companies engaged</div>
+      <div class="sec-ttl">
+        Partner companies engaged
+        <button onclick="exportPartners('hub')" style="background:var(--g);color:#fff;border:none;padding:5px 13px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">⬇ Export this hub → Excel</button>
+      </div>
       <div class="card">
         <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Company</th><th>Skills requested</th><th>FP</th><th>Date</th></tr></thead>
+          <table class="tbl" id="hubPartnerTable">
+            <thead><tr>
+              <th>Company</th><th>Location</th><th>Sector</th>
+              <th>Contact</th><th>Phone</th><th>Email</th>
+              <th>Status</th><th>Slots</th><th>Skills needed</th><th>Remarks</th><th>FP</th><th>Date</th>
+            </tr></thead>
             <tbody id="hubPartnerTbody"></tbody>
           </table>
         </div>
@@ -570,15 +584,33 @@ function renderHub(data){
   renderTagList('hubFacilitiesTags',data.facilitiesCounts||{}, 'tag-fac');
   renderTagList('hubVisitTypeTags', data.visitTypeCounts ||{}, 'tag-vt');
 
-  // Partner engagements
-  const pe=data.partnerEngagements||[];
+  // Partner engagements — store on window for export
+  window._currentHubPartners = data.partnerEngagements || [];
+  window._currentHub = data.hub;
+  const pe = window._currentHubPartners;
   document.getElementById('hubPartnerTbody').innerHTML=pe.length===0
-    ?'<tr><td colspan="4" class="empty">No partner engagements recorded yet</td></tr>'
+    ?'<tr><td colspan="12" class="empty">No partner engagements recorded yet</td></tr>'
     :pe.map(p=>'<tr>'+
       '<td><strong>'+esc(or(p.name))+'</strong></td>'+
+      '<td>'+esc(or(p.location))+'</td>'+
+      '<td><span class="pill pill-b" style="font-size:10px">'+esc(or(p.sector))+'</span></td>'+
+      '<td>'+esc(or(p.contact))+'</td>'+
+      '<td style="font-size:11.5px">'+esc(or(p.phone))+'</td>'+
+      '<td style="font-size:11.5px">'+esc(or(p.email))+'</td>'+
+      '<td>'+statusPill(p.status)+'</td>'+
+      '<td style="text-align:center;font-weight:700">'+((p.slots||0)>0?p.slots:'—')+'</td>'+
       '<td style="font-size:11.5px;color:var(--t3)">'+esc(or(p.skills))+'</td>'+
+      '<td style="font-size:11.5px;color:var(--t3)">'+esc(or(p.remarks))+'</td>'+
       '<td>'+esc(or(p.fp))+'</td>'+
-      '<td>'+or(p.date)+'</td></tr>').join('');
+      '<td style="white-space:nowrap">'+or(p.date)+'</td></tr>').join('');
+
+  // Build a lookup: date+fp → partners from partnerEngagements
+  const peByKey = {};
+  (data.partnerEngagements||[]).forEach(function(p){
+    var key = (p.date||'')+'|'+(p.fp||'');
+    if(!peByKey[key]) peByKey[key]=[];
+    peByKey[key].push(p);
+  });
 
   // Full visit log — expandable rows
   const rows=data.rows||[];
@@ -589,6 +621,7 @@ function renderHub(data){
 
   let html='';
   rows.forEach(function(r,idx){
+    r._partners = peByKey[(r.date||'')+'|'+(r.fp||'')] || [];
     const urgClass=r.urgency&&r.urgency.indexOf('Urgent')!==-1?'pill-r':r.urgency&&r.urgency.indexOf('48')!==-1?'pill-o':'';
     const rc=r.rating>=4?'pill-g':r.rating>=3?'pill-b':r.rating>0?'pill-r':'';
     const ratingCell=r.rating?('<span class="pill '+rc+'">'+r.rating+'/5</span>'):'—';
@@ -636,7 +669,7 @@ function renderHub(data){
       block('⚠ Issues flagged',formatList(r.issues))+
       block('🏗 Facilities',formatList(r.facilities))+
       block('🎯 Activities observed',formatList(r.activities))+
-      block('🤝 Partners count',String(r.partners||0))+
+      buildPartnerBlock(r, data.hub)+
       block('💬 Challenges',or(r.challenges))+
       block('📋 Recommendations',or(r.recommendations))+
       block('🚨 Urgency',or(r.urgency))+
@@ -773,6 +806,127 @@ function showToast(msg,type='success'){
   const el=document.getElementById('toast');
   el.textContent=msg; el.style.background=type==='warn'?'#7b1a1a':'#1a1a2e';
   el.classList.add('show'); clearTimeout(tT); tT=setTimeout(()=>el.classList.remove('show'),4000);
+}
+
+// ── PARTNER HELPERS ──
+function statusPill(status){
+  if(!status) return '<span style="color:var(--t3)">—</span>';
+  const map={
+    'Prospective':    'pill-b',
+    'Meeting held':   'pill-gold',
+    'Verified':       'pill-teal',
+    'Contract ready': 'pill-o',
+    'Signed':         'pill-g'
+  };
+  return '<span class="pill '+(map[status]||'')+'">'+esc(status)+'</span>';
+}
+
+function buildPartnerBlock(r, hubName){
+  const pe = (r._partners||[]);  // attached per row in renderHub
+  if(!pe.length){
+    return block('🤝 Partners ('+r.partners+')',
+      r.partners>0
+        ? '<span style="color:var(--t3);font-size:11.5px">Full details not available for this row — submitted before partner detail logging was enabled.</span>'
+        : '<span style="color:var(--t3)">None recorded</span>');
+  }
+  let tbl='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:4px">'+
+    '<tr style="background:var(--gl)">'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Company</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Sector</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Contact</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Phone</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Email</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Status</th>'+
+    '<th style="padding:5px 7px;text-align:center;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Slots</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Skills needed</th>'+
+    '<th style="padding:5px 7px;text-align:left;color:var(--g);font-size:10px;text-transform:uppercase;border-bottom:2px solid var(--gm)">Remarks</th>'+
+    '</tr>';
+  pe.forEach(function(p,i){
+    tbl+='<tr style="background:'+(i%2===0?'#fff':'#fafdfb')+'">'+
+      '<td style="padding:5px 7px;font-weight:600">'+esc(p.name||'')+'</td>'+
+      '<td style="padding:5px 7px">'+esc(p.sector||'')+'</td>'+
+      '<td style="padding:5px 7px">'+esc(p.contact||'')+'</td>'+
+      '<td style="padding:5px 7px">'+esc(p.phone||'')+'</td>'+
+      '<td style="padding:5px 7px">'+esc(p.email||'')+'</td>'+
+      '<td style="padding:5px 7px">'+statusPill(p.status)+'</td>'+
+      '<td style="padding:5px 7px;text-align:center;font-weight:700">'+((p.slots||0)>0?p.slots:'—')+'</td>'+
+      '<td style="padding:5px 7px;color:var(--t3)">'+esc(p.skills||p.skillsNeeded||'')+'</td>'+
+      '<td style="padding:5px 7px;color:var(--t3)">'+esc(p.remarks||'')+'</td>'+
+      '</tr>';
+  });
+  tbl+='</table></div>';
+  return block('🤝 Partners ('+pe.length+')', tbl);
+}
+
+// ── EXPORT PARTNERS → EXCEL ──
+async function exportPartners(scope){
+  const url = getUrl();
+  if(!url){ openConfig(); return; }
+
+  const hubName = scope==='hub' ? (window._currentHub||'') : '';
+  const label   = scope==='hub' && hubName ? hubName : 'All Hubs';
+  showToast('Fetching partner data…');
+
+  try{
+    const endpoint = url + '?action=partners' + (hubName ? '&hub='+encodeURIComponent(hubName) : '');
+    const resp = await fetch(endpoint);
+    const data = await resp.json();
+    if(data.status!=='success') throw new Error(data.message||'Error fetching partners');
+    if(!data.partners||!data.partners.length){
+      showToast('No partner data found for '+label,'warn'); return;
+    }
+    exportToExcel(data.partners, label, data.generatedAt);
+    showToast('✓ Exported '+data.partners.length+' partners to Excel');
+  }catch(e){
+    showToast('Export failed: '+e.message,'warn');
+  }
+}
+
+function exportToExcel(partners, label, generatedAt){
+  // Build CSV with BOM for Excel UTF-8 compatibility
+  const headers = [
+    'TSP Name','Zone','Focal Person','Visit Date',
+    'Company Name','Location','Sector','Business Profile',
+    'Skills Needed','Contact Person','Phone','Email',
+    'Status','Slots Available','Remarks'
+  ];
+
+  function csvCell(v){
+    var s = String(v==null?'':v);
+    // Wrap in quotes if contains comma, newline or quote; escape inner quotes
+    if(s.includes(',')||s.includes('\n')||s.includes('"')){
+      return '"'+s.replace(/"/g,'""')+'"';
+    }
+    return s;
+  }
+
+  const rows = partners.map(function(p){
+    return [
+      p.tsp, p.zone, p.fp, p.date,
+      p.name, p.location, p.sector, p.profile,
+      p.skills, p.contact, p.phone, p.email,
+      p.status, p.slots||0, p.remarks
+    ].map(csvCell).join(',');
+  });
+
+  const csvContent = '\uFEFF' +  // BOM
+    '# YiW Partner Registry Export — '+label+'\n'+
+    '# Generated: '+(generatedAt||new Date().toLocaleString())+'\n'+
+    '# Total records: '+partners.length+'\n'+
+    '\n'+
+    headers.map(csvCell).join(',') + '\n' +
+    rows.join('\n');
+
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'YiW_Partners_'+label.replace(/[^a-zA-Z0-9]/g,'_')+'_'+
+                new Date().toISOString().substring(0,10)+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 window.addEventListener('DOMContentLoaded',()=>{ loadData(); });
