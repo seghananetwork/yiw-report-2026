@@ -411,8 +411,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           <th style="min-width:145px">Skills they want trained</th>
           <th style="min-width:90px">Contact name</th>
           <th style="min-width:100px">Phone</th>
+          <th style="min-width:150px">Email</th>
           <th style="min-width:95px">Status</th>
           <th style="min-width:65px">Youth slots</th>
+          <th style="min-width:140px">Remarks</th>
           <th style="width:36px"></th>
         </tr></thead>
         <tbody id="ptbody"></tbody>
@@ -752,8 +754,10 @@ function addPartnerRow(){
     <td><textarea class="ptxt" placeholder="Skills they want trained…"></textarea></td>
     <td><input type="text" class="pinp" placeholder="Contact name"/></td>
     <td><input type="tel" class="pinp" placeholder="+233…"/></td>
+    <td><input type="email" class="pinp" placeholder="contact@company.com"/></td>
     <td><select class="psel"><option value="Prospective">Prospective</option><option value="Meeting held">Meeting held</option><option value="Verified">Verified</option><option value="Contract ready">Contract ready</option><option value="Signed">Signed</option></select></td>
     <td><input type="number" class="pinp" value="0" min="0" style="width:55px"/></td>
+    <td><textarea class="ptxt" placeholder="Notes, next steps…"></textarea></td>
     <td><button type="button" class="btn-del-row" onclick="this.closest('tr').remove();updatePCount()">✕</button></td>`;
   tr.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('input',updatePCount));
   tb.appendChild(tr);
@@ -842,8 +846,8 @@ function compileFormData(){
     if(c[0]&&c[0].value.trim()) partners.push({
       name:c[0].value.trim(),location:c[1].value.trim(),sector:c[2].value,
       profile:c[3].value.trim(),skillsNeeded:c[4].value.trim(),
-      contact:c[5].value.trim(),phone:c[6].value.trim(),
-      status:c[7].value,slots:parseInt(c[8].value)||0
+      contact:c[5].value.trim(),phone:c[6].value.trim(),email:c[7].value.trim(),
+      status:c[8].value,slots:parseInt(c[9].value)||0,remarks:c[10].value.trim()
     });
   });
   const safeChecked=SAFE_ITEMS.filter(s=>document.getElementById(s.id)&&document.getElementById(s.id).checked).map(s=>s.lbl);
