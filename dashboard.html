@@ -114,6 +114,10 @@ body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-heigh
 .folder-link{display:inline-flex;align-items:center;gap:4px;background:var(--gl);color:var(--g);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;text-decoration:none;margin:2px 2px 2px 0}
 .folder-link:hover{background:#d4edda}
 @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}.sg{grid-template-columns:repeat(2,1fr)}.bar-lbl{width:90px;font-size:10.5px}.lu{display:none}}
+/* FP detail expand (shared with hub view) */
+.fp-expand{display:none;background:#fafdfb}
+.fp-expand.open{display:table-row}
+.fp-expand td{padding:12px 14px;border-bottom:2px solid var(--gl)}
 </style>
 </head>
 <body>
@@ -124,6 +128,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-heigh
     <span class="lu" id="lu">Loading…</span>
     <button class="tbtn active" id="btn-overview" onclick="switchView('overview')">Overview</button>
     <button class="tbtn" id="btn-hub" onclick="switchView('hub')">Hub View</button>
+    <button class="tbtn" id="btn-fp" onclick="switchView('fp')">FP Reports</button>
     <button class="tbtn" id="btn-data" onclick="switchView('data')">Data Manager</button>
     <button class="tbtn" onclick="loadData()">↻ Refresh</button>
     <button class="tbtn" onclick="openConfig()">⚙ Config</button>
@@ -304,6 +309,106 @@ body{font-family:'Inter',sans-serif;background:#f0f4f0;color:var(--t1);min-heigh
   </div>
 </div>
 
+<!-- ═══ FP REPORTS ═══ -->
+<div class="view" id="view-fp">
+  <div style="height:16px"></div>
+
+  <!-- Filters -->
+  <div class="card cb" style="margin-bottom:14px">
+    <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px;text-transform:uppercase">Focal Person</div>
+        <select id="fpSelect" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;color:var(--t1);background:#fff">
+          <option value="">All Focal Persons</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:140px">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px;text-transform:uppercase">From date</div>
+        <input type="date" id="fpFrom" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif"/>
+      </div>
+      <div style="flex:1;min-width:140px">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px;text-transform:uppercase">To date</div>
+        <input type="date" id="fpTo" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif"/>
+      </div>
+      <button onclick="loadFpData()" style="background:var(--g);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Generate Report</button>
+      <button onclick="exportFpReport()" style="background:var(--blue);color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">⬇ Export → CSV</button>
+    </div>
+  </div>
+
+  <div class="loading" id="fpLoadingState" style="display:none"><div class="spinner"></div><p>Loading FP report…</p></div>
+  <div id="fpContent" style="display:none">
+
+    <!-- Summary stats strip -->
+    <div class="sg" id="fpSummaryGrid" style="margin-bottom:14px"></div>
+
+    <!-- Summary table (all FPs or filtered) -->
+    <div id="fpSummarySection">
+      <div class="sec-ttl" id="fpSectionTitle">All Focal Persons</div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr>
+              <th onclick="sortTable('fpSummaryTbody',0)">Focal Person</th>
+              <th onclick="sortTable('fpSummaryTbody',1)">Zone</th>
+              <th onclick="sortTable('fpSummaryTbody',2)" style="text-align:center">Reports</th>
+              <th onclick="sortTable('fpSummaryTbody',3)" style="text-align:center">Youth</th>
+              <th onclick="sortTable('fpSummaryTbody',4)" style="text-align:center">Activations</th>
+              <th onclick="sortTable('fpSummaryTbody',5)" style="text-align:center">Partners</th>
+              <th onclick="sortTable('fpSummaryTbody',6)" style="text-align:center">Enrolments</th>
+              <th onclick="sortTable('fpSummaryTbody',7)" style="text-align:center">Hubs covered</th>
+              <th onclick="sortTable('fpSummaryTbody',8)" style="text-align:center">Avg rating</th>
+              <th onclick="sortTable('fpSummaryTbody',9)">Active period</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="fpSummaryTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Single FP detailed view -->
+    <div id="fpDetailSection" style="display:none">
+      <div class="card ca" style="margin-bottom:14px"><div class="cb" id="fpDetailHeader"></div></div>
+      <div class="sg" id="fpDetailStats" style="margin-bottom:14px"></div>
+
+      <div class="g2" style="margin-bottom:12px">
+        <div>
+          <div class="sec-ttl">Visit types used</div>
+          <div class="card"><div class="cb"><div class="tag-list" id="fpVisitTypeTags"></div></div></div>
+        </div>
+        <div>
+          <div class="sec-ttl">Hubs visited</div>
+          <div class="card"><div class="cb" id="fpHubsChart"></div></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-ttl">Visit log</div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th onclick="sortTable('fpVisitTbody',0)">Date</th>
+                <th onclick="sortTable('fpVisitTbody',1)">Hub</th>
+                <th onclick="sortTable('fpVisitTbody',2)">Visit type</th>
+                <th onclick="sortTable('fpVisitTbody',3)">Community</th>
+                <th onclick="sortTable('fpVisitTbody',4)" style="text-align:center">Youth</th>
+                <th onclick="sortTable('fpVisitTbody',5)" style="text-align:center">Activations</th>
+                <th onclick="sortTable('fpVisitTbody',6)" style="text-align:center">Partners</th>
+                <th onclick="sortTable('fpVisitTbody',7)" style="text-align:center">Rating</th>
+                <th onclick="sortTable('fpVisitTbody',8)">Urgency</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="fpVisitTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- ═══ DATA MANAGER ═══ -->
 <div class="view" id="view-data">
   <div style="height:16px"></div>
@@ -362,6 +467,7 @@ function switchView(v){
   const btn=document.getElementById('btn-'+v);
   if(btn) btn.classList.add('active');
   if(v==='data') loadDmData();
+  if(v==='fp' && !_fpData) loadFpData();
 }
 
 // ── OVERVIEW ──
@@ -883,23 +989,12 @@ async function exportPartners(scope){
 }
 
 function exportToExcel(partners, label, generatedAt){
-  // Build CSV with BOM for Excel UTF-8 compatibility
   const headers = [
     'TSP Name','Zone','Focal Person','Visit Date',
     'Company Name','Location','Sector','Business Profile',
     'Skills Needed','Contact Person','Phone','Email',
     'Status','Slots Available','Remarks'
   ];
-
-  function csvCell(v){
-    var s = String(v==null?'':v);
-    // Wrap in quotes if contains comma, newline or quote; escape inner quotes
-    if(s.includes(',')||s.includes('\n')||s.includes('"')){
-      return '"'+s.replace(/"/g,'""')+'"';
-    }
-    return s;
-  }
-
   const rows = partners.map(function(p){
     return [
       p.tsp, p.zone, p.fp, p.date,
@@ -908,25 +1003,318 @@ function exportToExcel(partners, label, generatedAt){
       p.status, p.slots||0, p.remarks
     ].map(csvCell).join(',');
   });
+  downloadCsv(
+    [headers.map(csvCell).join(',')].concat(rows).join('\n'),
+    'YiW_Partners_'+label.replace(/[^a-zA-Z0-9]/g,'_')+'_'+today()+'.csv'
+  );
+}
 
-  const csvContent = '\uFEFF' +  // BOM
-    '# YiW Partner Registry Export — '+label+'\n'+
-    '# Generated: '+(generatedAt||new Date().toLocaleString())+'\n'+
-    '# Total records: '+partners.length+'\n'+
-    '\n'+
-    headers.map(csvCell).join(',') + '\n' +
-    rows.join('\n');
+// ── FP REPORTS ──
+let _fpData = null;
 
-  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'YiW_Partners_'+label.replace(/[^a-zA-Z0-9]/g,'_')+'_'+
-                new Date().toISOString().substring(0,10)+'.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+function populateFpSelector(fpNames){
+  const sel = document.getElementById('fpSelect');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Focal Persons</option>';
+  (fpNames||[]).sort().forEach(function(n){
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    if(n===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+async function loadFpData(){
+  const url = getUrl();
+  if(!url){ openConfig(); return; }
+  const fp   = document.getElementById('fpSelect').value;
+  const from = document.getElementById('fpFrom').value;
+  const to   = document.getElementById('fpTo').value;
+
+  document.getElementById('fpLoadingState').style.display='block';
+  document.getElementById('fpContent').style.display='none';
+
+  let endpoint = url+'?action=fpReport';
+  if(fp)   endpoint += '&fp='+encodeURIComponent(fp);
+  if(from) endpoint += '&from='+encodeURIComponent(from);
+  if(to)   endpoint += '&to='+encodeURIComponent(to);
+
+  try{
+    const resp = await fetch(endpoint);
+    const data = await resp.json();
+    if(data.status!=='success') throw new Error(data.message||'Error');
+    _fpData = data;
+
+    // Populate FP selector if coming fresh (no filter)
+    if(!fp && data.fpNames) populateFpSelector(data.fpNames);
+
+    if(fp && data.fpList.length===1){
+      renderFpDetail(data.fpList[0], data.rows);
+    } else {
+      renderFpSummary(data);
+    }
+
+    document.getElementById('fpLoadingState').style.display='none';
+    document.getElementById('fpContent').style.display='block';
+  }catch(e){
+    document.getElementById('fpLoadingState').innerHTML=
+      '<p style="color:var(--red);font-size:13px">'+esc(e.message)+'</p>';
+  }
+}
+
+function renderFpSummary(data){
+  document.getElementById('fpDetailSection').style.display='none';
+  document.getElementById('fpSummarySection').style.display='block';
+
+  const list = data.fpList||[];
+  const from = data.fromDate ? ' from '+data.fromDate : '';
+  const to   = data.toDate   ? ' to '+data.toDate     : '';
+  document.getElementById('fpSectionTitle').textContent =
+    list.length+' Focal Person(s)'+(from||to?' · Period'+from+to:'');
+
+  // Summary totals across all FPs
+  const tot = list.reduce(function(a,f){
+    return {reports:a.reports+f.reports, youth:a.youth+f.youth,
+            activations:a.activations+f.activations, partners:a.partners+f.partners,
+            enrol:a.enrol+f.enrolM+f.enrolF};
+  },{reports:0,youth:0,activations:0,partners:0,enrol:0});
+
+  document.getElementById('fpSummaryGrid').innerHTML=[
+    {val:list.length,       lbl:'Active FPs',       col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:tot.reports,       lbl:'Total visits',      col:'#1565c0',bg:'#e3f2fd'},
+    {val:tot.youth,         lbl:'Youth reached',     col:'#b8860b',bg:'#fff8e1'},
+    {val:tot.activations,   lbl:'Activations',       col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:tot.partners,      lbl:'Partners engaged',  col:'#00695c',bg:'#e0f2f1'},
+    {val:tot.enrol,         lbl:'Enrolments',        col:'#6a1b9a',bg:'#f3e8fd'}
+  ].map(s=>'<div class="sc"><div class="val" style="color:'+s.col+'">'+s.val.toLocaleString()+'</div><div class="lbl">'+s.lbl+'</div></div>').join('');
+
+  document.getElementById('fpSummaryTbody').innerHTML = list.length===0
+    ? '<tr><td colspan="11" class="empty">No FP data found for the selected period.</td></tr>'
+    : list.map(function(f){
+        const rc = f.avgRating>=4?'pill-g':f.avgRating>=3?'pill-b':f.avgRating?'pill-r':'';
+        const rCell = f.avgRating
+          ? '<span class="pill '+rc+'">'+f.avgRating+'/5</span>'
+          : '<span style="color:var(--t3)">—</span>';
+        const alertPills =
+          (f.urgentCount>0 ? '<span class="pill pill-r" style="font-size:10px;margin-left:4px">'+f.urgentCount+' urgent</span>' : '')+
+          (f.safetyCount>0 ? '<span class="pill pill-r" style="font-size:10px;margin-left:4px">⚠ safety</span>' : '');
+        return '<tr>'+
+          '<td><strong style="cursor:pointer;color:var(--g)" onclick="drillFp(\''+esc(f.fp)+'\')">'+esc(f.fp)+'</strong>'+alertPills+'</td>'+
+          '<td><span class="pill pill-b">'+esc(f.zone||'—')+'</span></td>'+
+          '<td style="text-align:center"><span class="pill pill-g">'+f.reports+'</span></td>'+
+          '<td style="text-align:center;font-weight:700;color:var(--gold)">'+f.youth.toLocaleString()+'</td>'+
+          '<td style="text-align:center;font-weight:700;color:var(--g)">'+f.activations+'</td>'+
+          '<td style="text-align:center">'+f.partners+'</td>'+
+          '<td style="text-align:center">'+((f.enrolM||0)+(f.enrolF||0))+'</td>'+
+          '<td style="text-align:center">'+f.hubCount+'</td>'+
+          '<td style="text-align:center">'+rCell+'</td>'+
+          '<td style="font-size:11.5px;color:var(--t3)">'+or(f.firstVisit)+' → '+or(f.lastVisit)+'</td>'+
+          '<td><span class="row-toggle" onclick="drillFp(\''+esc(f.fp)+'\')">View detail →</span></td>'+
+          '</tr>';
+      }).join('');
+}
+
+function drillFp(fpName){
+  document.getElementById('fpSelect').value = fpName;
+  loadFpData();
+}
+
+function renderFpDetail(fp, rows){
+  document.getElementById('fpSummarySection').style.display='none';
+  document.getElementById('fpDetailSection').style.display='block';
+
+  const rClass = fp.avgRating>=4?'#1a5c2a':fp.avgRating>=3?'#1565c0':'#c62828';
+  const stars  = fp.avgRating
+    ? (repeatStr('★',Math.round(fp.avgRating))+repeatStr('☆',5-Math.round(fp.avgRating))+' ('+fp.avgRating+'/5)')
+    : 'Not yet rated';
+
+  document.getElementById('fpDetailHeader').innerHTML=
+    '<div style="font-size:18px;font-weight:800;color:var(--g);margin-bottom:4px">'+esc(fp.fp)+'</div>'+
+    '<div style="font-size:12px;color:var(--t3)">'+
+      esc(fp.zone||'—')+' · '+
+      (fp.phone?'📞 '+fp.phone+' · ':'')+
+      (fp.email?'✉ '+fp.email+' · ':'')+
+      fp.reports+' visit(s) · '+
+      fp.firstVisit+' → '+fp.lastVisit+' · '+
+      'Avg rating: <strong style="color:'+rClass+'">'+stars+'</strong>'+
+    '</div>'+
+    (fp.urgentCount>0?'<div style="margin-top:6px"><span class="pill pill-r">'+fp.urgentCount+' urgent item(s)</span></div>':'')+
+    (fp.safetyCount>0?'<div style="margin-top:4px"><span class="pill pill-r">⚠ '+fp.safetyCount+' safety concern(s)</span></div>':'');
+
+  document.getElementById('fpDetailStats').innerHTML=[
+    {val:fp.reports,     lbl:'Visits',           col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:fp.youth,       lbl:'Youth reached',    col:'#b8860b',bg:'#fff8e1',sub:fp.men+'M/'+fp.women+'F/'+fp.pwd+' PWD'},
+    {val:fp.activations, lbl:'Activations',      col:'#1565c0',bg:'#e3f2fd'},
+    {val:fp.jobs,        lbl:'Formal jobs',      col:'#1a5c2a',bg:'#e8f5eb'},
+    {val:fp.interns,     lbl:'Internships',      col:'#6a1b9a',bg:'#f3e8fd'},
+    {val:fp.coops,       lbl:'Cooperatives',     col:'#e65100',bg:'#fff3e0'},
+    {val:fp.further,     lbl:'Further training', col:'#00695c',bg:'#e0f2f1'},
+    {val:fp.partners,    lbl:'Partners engaged', col:'#00695c',bg:'#e0f2f1'},
+    {val:(fp.enrolM||0)+(fp.enrolF||0), lbl:'Enrolments', col:'#1565c0',bg:'#e3f2fd',sub:(fp.enrolM||0)+'M/'+(fp.enrolF||0)+'F'},
+    {val:fp.hubCount,    lbl:'Hubs covered',     col:'#455a64',bg:'#eceff1'}
+  ].map(s=>'<div class="sc"><div class="val" style="color:'+s.col+'">'+s.val+'</div><div class="lbl">'+s.lbl+'</div>'+(s.sub?'<div class="sub">'+s.sub+'</div>':'')+' </div>').join('');
+
+  // Visit types
+  renderTagList('fpVisitTypeTags', fp.visitTypes||{}, 'tag-vt');
+
+  // Hubs chart
+  const hubs = fp.hubs||{};
+  const hubEntries = Object.entries(hubs).sort((a,b)=>b[1]-a[1]);
+  const maxH = hubEntries.length ? hubEntries[0][1] : 1;
+  document.getElementById('fpHubsChart').innerHTML = hubEntries.length===0
+    ? '<div class="empty">No hubs</div>'
+    : hubEntries.map(function(h){
+        return '<div class="bar-wrap">'+
+          '<div class="bar-lbl" style="width:160px" title="'+esc(h[0])+'">'+esc(h[0])+'</div>'+
+          '<div class="bar-track"><div class="bar-fill" style="width:'+Math.round((h[1]/maxH)*100)+'%;background:#1a5c2a">'+
+          '<span class="bar-val">'+h[1]+' visit'+(h[1]>1?'s':'')+'</span></div></div></div>';
+      }).join('');
+
+  // Visit log
+  if(!rows||rows.length===0){
+    document.getElementById('fpVisitTbody').innerHTML='<tr><td colspan="10" class="empty">No visits in this period.</td></tr>';
+    return;
+  }
+  let html='';
+  rows.forEach(function(r,idx){
+    const rc=r.rating>=4?'pill-g':r.rating>=3?'pill-b':r.rating>0?'pill-r':'';
+    const rCell=r.rating?('<span class="pill '+rc+'">'+r.rating+'/5</span>'):'—';
+    const urgClass=r.urgency&&r.urgency.indexOf('Urgent')!==-1?'pill-r':r.urgency&&r.urgency.indexOf('48')!==-1?'pill-o':'';
+    const urgCell=r.urgency?('<span class="pill '+urgClass+'" style="font-size:10px">'+esc(r.urgency)+'</span>'):'';
+    const safeFlag=r.safetyConcern&&r.safetyConcern.toLowerCase()==='yes'?'<span class="pill pill-r" style="font-size:10px;margin-left:3px">⚠</span>':'';
+    const vtypes=(r.visitType||'').split(';').filter(v=>v.trim()).map(v=>'<span class="pill pill-b" style="font-size:10px;margin:1px">'+esc(v.trim())+'</span>').join('');
+
+    html+='<tr id="fpvrow-'+idx+'" onclick="toggleFpExpand('+idx+')" style="cursor:pointer">'+
+      '<td>'+or(r.date)+'</td>'+
+      '<td>'+esc(or(r.hub))+'</td>'+
+      '<td>'+(vtypes||'—')+'</td>'+
+      '<td>'+esc(or(r.community))+'</td>'+
+      '<td style="text-align:center;font-weight:700;color:var(--gold)">'+r.youth+'</td>'+
+      '<td style="text-align:center;font-weight:700;color:var(--g)">'+r.activations+'</td>'+
+      '<td style="text-align:center">'+r.partners+'</td>'+
+      '<td style="text-align:center">'+rCell+'</td>'+
+      '<td>'+urgCell+safeFlag+'</td>'+
+      '<td><span class="row-toggle" id="fptoggle-'+idx+'">▶ Details</span></td>'+
+      '</tr>';
+
+    // Expanded row
+    html+='<tr class="fp-expand" id="fpexpand-'+idx+'">'+
+      '<td colspan="10">'+
+      '<div class="expand-grid">'+
+      block('📅 Date',or(r.date))+
+      block('⏱ Time on site',(r.tArr&&r.tDep)?r.tArr+' → '+r.tDep:'—')+
+      block('🧭 Visit type',vtypes||'—')+
+      block('📍 Community',or(r.community))+
+      block('🏫 Training centre',or(r.trainingCentre))+
+      block('👥 Attendance','Youth: <strong>'+r.youth+'</strong> · M:'+r.men+' F:'+r.women+' PWD:'+r.pwd+'<br/>Staff: '+r.staff+' · Trainers: '+r.trainer)+
+      block('📈 Activations','Jobs: <strong>'+r.jobs+'</strong> · Interns: '+r.interns+' · Coops: '+r.coops+' · Further: '+r.further+'<br/><strong>Total: '+r.activations+'</strong>')+
+      block('📚 Enrolments',r.enrolM+'M / '+r.enrolF+'F'+(r.enrolCourse?' — '+esc(r.enrolCourse):''))+
+      block('🏢 Employer',or(r.empName)+(r.empSector?' ('+r.empSector+')':''))+
+      block('⭐ Hub rating',r.rating?r.rating+'/5 '+repeatStr('★',r.rating)+repeatStr('☆',5-r.rating):'Not rated')+
+      block('✅ Quality indicators',formatList(r.quality))+
+      block('⚠ Issues flagged',formatList(r.issues))+
+      block('🏗 Facilities',formatList(r.facilities))+
+      block('🎯 Activities',formatList(r.activities))+
+      block('🤝 Partners ('+r.partners+')', r.partnerList&&r.partnerList.length
+        ? r.partnerList.map(function(p){ return '<div style="margin-bottom:3px"><strong>'+esc(p.name)+'</strong>'+(p.skills?' — '+esc(p.skills):'')+'</div>'; }).join('')
+        : '<span style="color:var(--t3)">None recorded</span>')+
+      block('💬 Challenges',or(r.challenges))+
+      block('📋 Recommendations',or(r.recommendations))+
+      block('🚨 Urgency',or(r.urgency))+
+      block('🌟 Highlight',or(r.highlight))+
+      block('📝 Final notes',or(r.finalNotes))+
+      (r.safetyConcern&&r.safetyConcern.toLowerCase()==='yes'?block('🔴 Safeguarding','<span style="color:var(--red);font-weight:700">CONCERN RAISED</span>'+(r.safeTxt?'<br/>'+esc(r.safeTxt):'')):'')+
+      (r.submissionFolder?block('📁 Files ('+r.totalFiles+')','<a href="'+r.submissionFolder+'" target="_blank" class="folder-link">📁 Open folder</a>'):(r.totalFiles?block('📁 Files',r.totalFiles+' uploaded'):''  ))+
+      '</div></td></tr>';
+  });
+  document.getElementById('fpVisitTbody').innerHTML=html;
+}
+
+function toggleFpExpand(idx){
+  const exp=document.getElementById('fpexpand-'+idx);
+  const tog=document.getElementById('fptoggle-'+idx);
+  const open=exp.classList.toggle('open');
+  tog.textContent=open?'▼ Close':'▶ Details';
+}
+
+// ── EXPORT FP REPORT → CSV ──
+function exportFpReport(){
+  if(!_fpData){ showToast('Generate a report first','warn'); return; }
+
+  const fp   = document.getElementById('fpSelect').value;
+  const from = document.getElementById('fpFrom').value;
+  const to   = document.getElementById('fpTo').value;
+  const label= fp||'All_FPs';
+
+  // If single FP detail view — export visit rows
+  if(fp && _fpData.rows && _fpData.rows.length){
+    const headers=['Date','Hub','Zone','Visit Type','Community','Training Centre',
+      'Time Arrived','Time Departed','Youth Total','Male','Female','PWD','Staff','Trainers',
+      'Activations','Jobs','Internships','Cooperatives','Further Training',
+      'Enrolments M','Enrolments F','Course','Employer','Sector',
+      'Partners','Hub Rating','Urgency','Safety Concern',
+      'Quality Indicators','Issues Flagged','Facilities','Activities',
+      'Challenges','Recommendations','Highlight','Final Notes'];
+
+    const rows=_fpData.rows.map(function(r){
+      return [
+        r.date, r.hub, r.zone, r.visitType, r.community, r.trainingCentre,
+        r.tArr, r.tDep, r.youth, r.men, r.women, r.pwd, r.staff, r.trainer,
+        r.activations, r.jobs, r.interns, r.coops, r.further,
+        r.enrolM, r.enrolF, r.enrolCourse, r.empName, r.empSector,
+        r.partners, r.rating, r.urgency, r.safetyConcern,
+        r.quality, r.issues, r.facilities, r.activities,
+        r.challenges, r.recommendations, r.highlight, r.finalNotes
+      ].map(csvCell).join(',');
+    });
+
+    downloadCsv(
+      [headers.map(csvCell).join(',')].concat(rows).join('\n'),
+      'YiW_FP_Visits_'+label+'_'+today()+'.csv'
+    );
+    showToast('✓ Exported '+_fpData.rows.length+' visits');
+
+  } else {
+    // Summary table export
+    const headers=['Focal Person','Zone','Phone','Email','Reports',
+      'Youth Reached','Male','Female','PWD','Activations','Jobs','Internships',
+      'Cooperatives','Further Training','Partners','Enrolments M','Enrolments F',
+      'Hubs Covered','Avg Rating','Urgent Items','Safety Concerns',
+      'First Visit','Last Visit','Hubs List'];
+
+    const rows=(_fpData.fpList||[]).map(function(f){
+      return [
+        f.fp, f.zone, f.phone, f.email, f.reports,
+        f.youth, f.men, f.women, f.pwd, f.activations, f.jobs, f.interns,
+        f.coops, f.further, f.partners, f.enrolM, f.enrolF,
+        f.hubCount, f.avgRating||'', f.urgentCount, f.safetyCount,
+        f.firstVisit, f.lastVisit, (f.hubs||[]).join('; ')
+      ].map(csvCell).join(',');
+    });
+
+    downloadCsv(
+      [headers.map(csvCell).join(',')].concat(rows).join('\n'),
+      'YiW_FP_Summary'+(from?'_'+from:'')+(to?'_to_'+to:'')+'_'+today()+'.csv'
+    );
+    showToast('✓ Exported '+((_fpData.fpList||[]).length)+' FP records');
+  }
+}
+
+// ── SHARED CSV HELPERS ──
+function csvCell(v){
+  var s=String(v==null?'':v);
+  if(s.includes(',')||s.includes('\n')||s.includes('"'))
+    return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function today(){ return new Date().toISOString().substring(0,10); }
+function downloadCsv(content, filename){
+  const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 window.addEventListener('DOMContentLoaded',()=>{ loadData(); });
