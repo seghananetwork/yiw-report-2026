@@ -922,8 +922,9 @@ function getDriveToken(){
 // Step 2: Find or create a Drive folder, return its ID
 async function getDriveFolderId(token, parentId, name){
   // Search for existing folder
-  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name}' and '${parentId}' in parents and trashed=false`);
-  const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,{
+  const safeName = String(name).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${safeName}' and '${parentId}' in parents and trashed=false`);
+  const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true`,{
     headers:{ Authorization:'Bearer '+token }
   });
   if(!searchRes.ok){
@@ -939,7 +940,7 @@ async function getDriveFolderId(token, parentId, name){
   }
   if(data.files && data.files.length>0) return data.files[0].id;
   // Create it
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files',{
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true',{
     method:'POST',
     headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' },
     body: JSON.stringify({ name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] })
@@ -967,7 +968,7 @@ async function uploadFileToDrive(token, file, folderId, onProgress){
 
   return new Promise((resolve, reject)=>{
     const xhr = new XMLHttpRequest();
-    xhr.open('POST','https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink');
+    xhr.open('POST','https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink');
     xhr.setRequestHeader('Authorization','Bearer '+token);
     xhr.upload.onprogress = e=>{ if(e.lengthComputable && onProgress) onProgress(e.loaded/e.total); };
     xhr.onload = ()=>{
@@ -985,11 +986,25 @@ async function uploadFileToDrive(token, file, folderId, onProgress){
 
 // Step 4: Make folder publicly viewable (so links work in email)
 async function shareFolderPublic(token, folderId){
-  await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}/permissions`,{
-    method:'POST',
-    headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' },
-    body: JSON.stringify({ role:'reader', type:'anyone' })
+  // PRIVACY: intentionally does nothing. Folders inherit access from the SE Ghana
+  // root folder, so only people you have added to that folder can open the links.
+  return;
+}
+
+// Pre-flight: confirm the signed-in account can actually write to the root folder
+async function checkRootAccess(token){
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${ROOT_FOLDER_ID}?fields=id,name,capabilities(canAddChildren)&supportsAllDrives=true`,{
+    headers:{ Authorization:'Bearer '+token }
   });
+  const txt = await r.text();
+  if(r.status===404) throw new Error('This Google account cannot see the SE Ghana shared folder. Ask the coordinator to add the exact Gmail you signed in with as an Editor. (404)');
+  if(r.status===403){
+    if(/accessNotConfigured|has not been used in project|disabled/i.test(txt)) throw new Error('Google Drive API is not enabled in the Google Cloud project (admin fix). (403)');
+    throw new Error('Google refused access to the SE Ghana folder. (403) '+txt.substring(0,150));
+  }
+  if(!r.ok) throw new Error('Drive check failed ('+r.status+'): '+txt.substring(0,150));
+  let j={}; try{ j=JSON.parse(txt);}catch(e){}
+  if(j.capabilities && j.capabilities.canAddChildren===false) throw new Error('Your Google account can only VIEW the SE Ghana folder. It must be an Editor.');
 }
 
 // ── PROGRESS UI ──
@@ -1035,6 +1050,7 @@ async function uploadAndSubmit(reportId, formData){
     const subName = `${formData.visitDate||'no-date'} — ${formData.fpName||'unknown'} (${formData.trainingCentre||formData.hubName||'unknown'})`;
     let subId;
     try{
+      await checkRootAccess(token);
       subId = await getDriveFolderId(token, rootId, subName);
     } catch(driveErr){
       // Drive setup failed — tell the user exactly why, then offer to submit without files
@@ -1174,9 +1190,14 @@ async function executeReportSubmission(){
     }
   } catch(e){
     console.error('Submit error:',e);
-    showToast('⚠ '+e.message,'warn');
+    setProgress(-1,'');
+    alert('Submission problem:\n\n'+e.message+'\n\nYour entries and attached files are still on this page. Fix the issue and press Submit again. A text-only copy was also saved to this device.');
     await dbWrite({id:Date.now(), ts:new Date().toLocaleString(), status:'pending', formData:d});
+    const b=document.getElementById('submitBtn'); b.disabled=false; b.textContent='✉️ Submit Report';
+    renderSavedRegistry();
+    return; // keep attached files so the user can retry
   }
+  setProgress(-1,'');
   resetAfterSubmit();
 }
 
