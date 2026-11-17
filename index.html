@@ -582,7 +582,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // ── CONFIG ──
 const SCRIPT_URL       = "https://script.google.com/macros/s/AKfycby5SZ8IBYj6Cu0y9leYJ8v32W8YZf-Le-s1L_mfejPB2H7gqiU2TLtGPMT4_0tQBcO35Q/exec";
 const GDRIVE_CLIENT_ID = "993520086653-9kof7bk29472tmvcj4l1q3v44tkkau1e.apps.googleusercontent.com";
-const GDRIVE_SCOPE     = "https://www.googleapis.com/auth/drive.file";
+const GDRIVE_SCOPE     = "https://www.googleapis.com/auth/drive";
 const ROOT_FOLDER_ID   = "1NSEaitnDZFqqBkSSdMPxPDPettGKFyHQ"; // SE Ghana shared YiW folder
 let   gdriveToken      = null;
 
@@ -923,18 +923,38 @@ function getDriveToken(){
 async function getDriveFolderId(token, parentId, name){
   // Search for existing folder
   const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name}' and '${parentId}' in parents and trashed=false`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,{
+  const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`,{
     headers:{ Authorization:'Bearer '+token }
   });
-  const data = await res.json();
+  if(!searchRes.ok){
+    const errText = await searchRes.text();
+    if(searchRes.status===403){
+      throw new Error(`Drive permission denied (403). Your Google account does not have access to the SE Ghana shared folder. Please contact your YiW coordinator to be added as an Editor. (${errText.substring(0,120)})`);
+    }
+    throw new Error(`Drive search failed (${searchRes.status}): ${errText.substring(0,200)}`);
+  }
+  const data = await searchRes.json();
+  if(data.error){
+    throw new Error(`Drive API error: ${data.error.message||JSON.stringify(data.error)}`);
+  }
   if(data.files && data.files.length>0) return data.files[0].id;
   // Create it
-  const create = await fetch('https://www.googleapis.com/drive/v3/files',{
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files',{
     method:'POST',
     headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' },
     body: JSON.stringify({ name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] })
   });
-  const folder = await create.json();
+  if(!createRes.ok){
+    const errText = await createRes.text();
+    if(createRes.status===403){
+      throw new Error(`Drive permission denied (403). Your Google account cannot create folders in the SE Ghana shared Drive. Please contact your YiW coordinator to be added as an Editor to the shared folder.`);
+    }
+    throw new Error(`Drive folder creation failed (${createRes.status}): ${errText.substring(0,200)}`);
+  }
+  const folder = await createRes.json();
+  if(!folder.id){
+    throw new Error(`Drive returned no folder ID when creating "${name}". Response: ${JSON.stringify(folder).substring(0,200)}`);
+  }
   return folder.id;
 }
 
@@ -1007,13 +1027,39 @@ async function uploadAndSubmit(reportId, formData){
       throw new Error('Google sign-in failed or was cancelled. Please try again.');
     }
 
-    // Use the fixed SE Ghana shared root folder — no name lookup needed
+    // Use the fixed SE Ghana shared root folder
     setProgress(5, 'Setting up submission folder…');
     const rootId = ROOT_FOLDER_ID;
 
     // Create one subfolder per submission inside the shared root
     const subName = `${formData.visitDate||'no-date'} — ${formData.fpName||'unknown'} (${formData.trainingCentre||formData.hubName||'unknown'})`;
-    const subId   = await getDriveFolderId(token, rootId, subName);
+    let subId;
+    try{
+      subId = await getDriveFolderId(token, rootId, subName);
+    } catch(driveErr){
+      // Drive setup failed — tell the user exactly why, then offer to submit without files
+      setProgress(-1, '');
+      const proceed = confirm(
+        `⚠ Drive upload failed:\n\n${driveErr.message}\n\n` +
+        `Do you want to submit your REPORT TEXT without the files?\n\n` +
+        `(Your form data will still be recorded in the sheet and email sent — only files will be missing.)`
+      );
+      if(!proceed) throw new Error('Submission cancelled by user.');
+      // Submit text-only — skip all Drive steps
+      setProgress(90, 'Sending report (no files)…');
+      const resp = await fetch(SCRIPT_URL,{
+        method:'POST', mode:'cors',
+        headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({
+          action:'submitWithLinks', reportId, formData,
+          driveLinks:{}, driveFolderLinks:{}, submissionFolderLink:'',
+          totalFiles:0, driveError: driveErr.message
+        })
+      });
+      const json = await resp.json();
+      setProgress(100,'Done');
+      return json;
+    }
 
     // Share the submission folder so links work for the office
     await shareFolderPublic(token, subId);
@@ -1029,15 +1075,20 @@ async function uploadAndSubmit(reportId, formData){
     const catFolderIds = {};
     for(const [cat, label] of Object.entries(catLabels)){
       if((MS[cat]||[]).length > 0){
-        const catFolderId = await getDriveFolderId(token, subId, label);
-        await shareFolderPublic(token, catFolderId);
-        catFolderIds[cat] = catFolderId;
-        // Get the folder's own link
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${catFolderId}?fields=webViewLink`,{
-          headers:{ Authorization:'Bearer '+token }
-        });
-        const data = await res.json();
-        driveFolderLinks[cat] = data.webViewLink || '';
+        try{
+          const catFolderId = await getDriveFolderId(token, subId, label);
+          await shareFolderPublic(token, catFolderId);
+          catFolderIds[cat] = catFolderId;
+          // Get the folder's own link
+          const res = await fetch(`https://www.googleapis.com/drive/v3/files/${catFolderId}?fields=webViewLink`,{
+            headers:{ Authorization:'Bearer '+token }
+          });
+          const catData = await res.json();
+          driveFolderLinks[cat] = catData.webViewLink || '';
+        } catch(catErr){
+          console.error(`Failed to create category folder "${label}":`, catErr);
+          showToast(`⚠ Could not create "${label}" folder — files in this category skipped`, 'warn');
+        }
       }
     }
 
@@ -1050,13 +1101,14 @@ async function uploadAndSubmit(reportId, formData){
         const pct = 5 + Math.round((done/totalFiles)*88);
         setProgress(pct, `Uploading ${file.name} (${done+1}/${totalFiles})…`);
         try{
+          if(!catFolderIds[cat]) throw new Error(`No folder for category "${label}"`);
           const result = await uploadFileToDrive(token, file, catFolderIds[cat],
             (prog)=> setProgress(pct + Math.round(prog*(88/totalFiles)), `Uploading ${file.name}…`)
           );
           uploadedLinks[cat].push({ name:file.name, url:result.url, id:result.id, category:label });
         } catch(err){
           console.error('File upload failed:',file.name, err);
-          showToast(`⚠ Could not upload ${file.name} — continuing`, 'warn');
+          showToast(`⚠ Could not upload ${file.name}: ${err.message}`, 'warn');
         }
         done++;
       }
